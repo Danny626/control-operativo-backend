@@ -1,0 +1,30 @@
+server:
+  port: 8080
+  address: localhost
+  servlet:
+    context-path: /controlOperativo
+spring:
+  datasource:
+    control-operativo:
+      driver-class-name: org.postgresql.Driver
+      url: jdbc:postgresql://${DB_HOST_CO}/control-operativo
+      username: controlop
+      password: ${PASSWORD_CO}
+      hibernate-hbm2ddl-auto: update
+      show-sql: true
+security:
+  oauth2:
+    resource:
+      filter-order: 3
+  signing-key: ${SIGNIN_KEY}
+  encoding-strength: 256
+  security-realm: Spring Boot JWT
+  jwt:
+    client-id: controlOperativo
+    client-secret: ${CLIENT_SECRET}
+    grant-type: password
+    scope-read: read
+    scope-write: write
+    resource-ids: ${RESOURCE_ID}
+    
+property: false
