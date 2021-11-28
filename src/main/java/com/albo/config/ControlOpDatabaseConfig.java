@@ -5,11 +5,9 @@ import java.util.HashMap;
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -19,10 +17,11 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
-@EnableJpaRepositories(basePackages = "com.albo.controlop.*", entityManagerFactoryRef = "controlopEntityManagerFactory", transactionManagerRef = "controlopTransactionManager")
-@ComponentScan(basePackages = { "com.albo.controlop.*" })
-@EntityScan("com.albo.controlop.model")
-public class ControlOpDAOConfig {
+@EnableJpaRepositories(
+		basePackages = "com.albo.controlop.repository", 
+		entityManagerFactoryRef = "controlopEntityManager", 
+		transactionManagerRef = "controlopTransactionManager")
+public class ControlOpDatabaseConfig {
 
 	@Value("${spring.datasource.control-operativo.hibernate-hbm2ddl-auto}")
 	private String ddlMode;
@@ -30,12 +29,12 @@ public class ControlOpDAOConfig {
 	@Primary
 	@Bean
 	public PlatformTransactionManager controlopTransactionManager() {
-		return new JpaTransactionManager(controlopEntityManagerFactory().getObject());
+		return new JpaTransactionManager(controlopEntityManager().getObject());
 	}
 
 	@Primary
 	@Bean
-	public LocalContainerEntityManagerFactoryBean controlopEntityManagerFactory() {
+	public LocalContainerEntityManagerFactoryBean controlopEntityManager() {
 		HibernateJpaVendorAdapter jpaVendorAdapter = new HibernateJpaVendorAdapter();
 
 		HashMap<String, Object> properties = new HashMap<>();
@@ -47,7 +46,7 @@ public class ControlOpDAOConfig {
 
 		factoryBean.setDataSource(controlopDataSource());
 		factoryBean.setJpaVendorAdapter(jpaVendorAdapter);
-		factoryBean.setPackagesToScan("com.albo.controlop.*");
+		factoryBean.setPackagesToScan("com.albo.controlop.model");
 		factoryBean.setJpaPropertyMap(properties);
 
 		return factoryBean;

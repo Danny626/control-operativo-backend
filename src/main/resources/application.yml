@@ -7,11 +7,29 @@ spring:
   datasource:
     control-operativo:
       driver-class-name: org.postgresql.Driver
-      url: jdbc:postgresql://${DB_HOST_CO}/control-operativo
+      jdbc-url: jdbc:postgresql://${DB_HOST_CO}/control-operativo
       username: controlop
       password: ${PASSWORD_CO}
       hibernate-hbm2ddl-auto: update
       show-sql: true
+    soa-alt:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@192.168.224.5:1521:XE
+      username: SOA
+      password: ${PASSWORD_SOA}
+      hibernate-hbm2ddl-auto: none
+    soa-vir:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@192.168.221.5:1521:XE
+      username: SOA
+      password: ${PASSWORD_SOA}
+      hibernate-hbm2ddl-auto: none
+    soa-scz:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@192.168.223.5:1521:XE
+      username: SOA
+      password: ${PASSWORD_SOA}
+      hibernate-hbm2ddl-auto: none
 security:
   oauth2:
     resource:
