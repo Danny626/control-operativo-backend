@@ -38,6 +38,10 @@ public class Aduana implements Serializable {
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "aduana")
 	private List<Recinto> recintos = new ArrayList<Recinto>();
 
+	@JsonIgnore
+	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "aduana")
+	private List<ParteSuma> partesSuma = new ArrayList<ParteSuma>();
+
 	/** Fin Campos BD **/
 
 	/** Inicio Getters y setters **/
@@ -80,6 +84,14 @@ public class Aduana implements Serializable {
 
 	public void setRecintos(List<Recinto> recintos) {
 		this.recintos = recintos;
+	}
+
+	public List<ParteSuma> getPartesSuma() {
+		return partesSuma;
+	}
+
+	public void setPartesSuma(List<ParteSuma> partesSuma) {
+		this.partesSuma = partesSuma;
 	}
 
 	/** Fin Getters y setters **/

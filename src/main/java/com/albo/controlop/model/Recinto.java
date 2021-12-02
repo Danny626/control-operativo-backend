@@ -38,14 +38,18 @@ public class Recinto implements Serializable {
 
 	@Column(name = "tipo", length = 10)
 	private String tipo;
-	
+
 	@ManyToOne
 	@JoinColumn(name = "adu_cod", referencedColumnName = "adu_cod")
 	private Aduana aduana;
-	
+
 	@JsonIgnore
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "recinto")
 	private List<Usuario> usuario = new ArrayList<Usuario>();
+
+	@JsonIgnore
+	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "recinto")
+	private List<ParteSuma> partesSuma = new ArrayList<ParteSuma>();
 
 	/** fin campos bd **/
 
@@ -105,6 +109,14 @@ public class Recinto implements Serializable {
 
 	public void setUsuario(List<Usuario> usuario) {
 		this.usuario = usuario;
+	}
+
+	public List<ParteSuma> getPartesSuma() {
+		return partesSuma;
+	}
+
+	public void setPartesSuma(List<ParteSuma> partesSuma) {
+		this.partesSuma = partesSuma;
 	}
 
 	/** fin getters y setters **/
