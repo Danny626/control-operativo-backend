@@ -187,7 +187,8 @@ public class ControlOperativoController {
 		resultadoCargaExcel.setRegistrosNoGuardados(errores.size());
 		resultadoCargaExcel.setTotalRegistros(data.size());
 		resultadoCargaExcel.setRegistrosError(errores);
-
+		resultadoCargaExcel.setResponseCode(HttpStatus.OK);
+		resultadoCargaExcel.setUploadStatus("success");
 		return new ResponseEntity<ResultadoCargaExcel>(resultadoCargaExcel, HttpStatus.OK);
 	}
 	

@@ -2,6 +2,8 @@ package com.albo.controlop.dto;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
+
 import com.albo.controlop.model.ParteSuma;
 
 public class ResultadoCargaExcel {
@@ -10,6 +12,8 @@ public class ResultadoCargaExcel {
 	private Integer procesadosSinError;
 	private Integer registrosGuardados;
 	private Integer registrosNoGuardados;
+	private HttpStatus responseCode;
+	private String uploadStatus;
 	private List<ParteSuma> partesSuma;
 	private List<ErrorExcel> registrosError;
 
@@ -59,6 +63,22 @@ public class ResultadoCargaExcel {
 
 	public void setRegistrosError(List<ErrorExcel> registrosError) {
 		this.registrosError = registrosError;
+	}
+
+	public HttpStatus getResponseCode() {
+		return responseCode;
+	}
+
+	public void setResponseCode(HttpStatus responseCode) {
+		this.responseCode = responseCode;
+	}
+
+	public String getUploadStatus() {
+		return uploadStatus;
+	}
+
+	public void setUploadStatus(String uploadStatus) {
+		this.uploadStatus = uploadStatus;
 	}
 
 }
