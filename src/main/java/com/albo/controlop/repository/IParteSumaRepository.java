@@ -1,6 +1,7 @@
 package com.albo.controlop.repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -34,4 +35,9 @@ public interface IParteSumaRepository extends JpaRepository<ParteSuma, Integer> 
 			@Param("documentoEmbarque") String documentoEmbarque,
 			@Param("documentoRelacionado") String documentoRelacionado,
 			@Param("placaPatente") String placaPatente);
+	
+	@Query("FROM ParteSuma ps WHERE ps.fechaRecepcion >= :fechaInicial AND ps.fechaRecepcion <= :fechaFinal")
+	List<ParteSuma> buscarPorFechaRecepcion(
+			@Param("fechaInicial") LocalDateTime fechaInicial,
+			@Param("fechaFinal") LocalDateTime fechaFinal);
 }

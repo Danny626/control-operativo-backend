@@ -5,7 +5,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -13,6 +16,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+
+import javax.validation.Valid;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,13 +32,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.albo.controlop.dto.ErrorExcel;
+import com.albo.controlop.dto.ExistenVirtualbo;
+import com.albo.controlop.dto.ParamControlPartes;
 import com.albo.controlop.dto.PedidoCargaArchivo;
 import com.albo.controlop.dto.ResultadoCargaExcel;
+import com.albo.controlop.dto.ResultadoComparaSumaVirtu;
 import com.albo.controlop.model.Aduana;
 import com.albo.controlop.model.DestinatarioParte;
 import com.albo.controlop.model.ParteSuma;
@@ -46,6 +55,11 @@ import com.albo.controlop.service.IParteSumaService;
 import com.albo.controlop.service.IRecintoService;
 import com.albo.controlop.service.ITipoCargaParteService;
 import com.albo.controlop.service.IUsuarioParteService;
+import com.albo.soa.model.VInventarioEgr;
+import com.albo.soa.service.alt.IVInventarioEgrAltService;
+import com.albo.soa.service.chb.IVInventarioEgrChbService;
+import com.albo.soa.service.scz.IVInventarioEgrSczService;
+import com.albo.soa.service.vir.IVInventarioEgrVirService;
 
 @RestController
 @RequestMapping("/controlOperativo")
@@ -73,6 +87,18 @@ public class ControlOperativoController {
 	
 	@Autowired
 	private IRecintoService recintoService;
+	
+	@Autowired
+	private IVInventarioEgrAltService vInventarioEgrAltService;
+	
+	@Autowired
+	private IVInventarioEgrChbService vInventarioEgrChbService;
+	
+	@Autowired
+	private IVInventarioEgrSczService vInventarioEgrSczService;
+	
+	@Autowired
+	private IVInventarioEgrVirService vInventarioEgrVirService;
 
 	@PostMapping(value = "/cargaArchivo", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE }, produces = {
 			MediaType.APPLICATION_JSON_VALUE })
@@ -190,6 +216,143 @@ public class ControlOperativoController {
 		resultadoCargaExcel.setResponseCode(HttpStatus.OK);
 		resultadoCargaExcel.setUploadStatus("success");
 		return new ResponseEntity<ResultadoCargaExcel>(resultadoCargaExcel, HttpStatus.OK);
+	}
+	
+	
+	@PostMapping(value = "/controlPartes", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<?> controlPartes(@Valid @RequestBody ParamControlPartes paramControlPartes) { 
+		
+		// armamos la fecha inicial
+		LocalDateTime fechaInicioProceso = this.fechaStringToLocalDateTime(paramControlPartes.getFechaInicial() + " 00:00:00");
+		LOGGER.info("fechaInicioProceso: " + fechaInicioProceso);
+
+		// armamos la fecha final
+		LocalDateTime fechaFinalProceso = this.fechaStringToLocalDateTime(paramControlPartes.getFechaFinal() + " 23:59:59");
+		LOGGER.info("fechaFinalProceso: " + fechaFinalProceso);
+		
+		// buscamos los partes en el rango de fechas de recepción dadas
+		List<ParteSuma> partesSuma = new ArrayList<ParteSuma>();
+		partesSuma = this.parteSumaService.buscarPorFechaRecepcion(fechaInicioProceso, fechaFinalProceso);
+		
+		ResultadoComparaSumaVirtu resultadoComparaSumaVirtu;
+		String fechaSalida = paramControlPartes.getFechaSalida().replace("-", "/");
+		String fechaInicio = paramControlPartes.getFechaInicial().replace("-", "/");
+		String fechaFinal = paramControlPartes.getFechaFinal().replace("-", "/");
+		
+		// buscar si existen en virtualbo cada registro de partesSuma
+		switch (paramControlPartes.getCodRecinto()) {
+		case "ALT01": {
+			
+			LOGGER.info("El ALTO");
+			
+			List<VInventarioEgr> inventarioEgresos = this.vInventarioEgrAltService.listarVInventarioEgr(
+					fechaSalida, paramControlPartes.getCodRecinto(), "ACT", fechaInicio, fechaFinal);
+			
+			resultadoComparaSumaVirtu = this.compararPartesSumaVirtualbo(partesSuma, inventarioEgresos);
+		
+			break;
+		}
+		case "CHB01": {
+			
+			LOGGER.info("COCHABAMBA");
+			
+			List<VInventarioEgr> inventarioEgresos = this.vInventarioEgrChbService.listarVInventarioEgr(
+					fechaSalida, paramControlPartes.getCodRecinto(), "ACT", fechaInicio, fechaFinal);
+			
+			resultadoComparaSumaVirtu = this.compararPartesSumaVirtualbo(partesSuma, inventarioEgresos);
+			
+			break;
+		}
+		case "PAM01": {
+			
+			LOGGER.info("PAMPA");
+			
+			List<VInventarioEgr> inventarioEgresos = this.vInventarioEgrSczService.listarVInventarioEgr(
+					fechaSalida, paramControlPartes.getCodRecinto(), "ACT", fechaInicio, fechaFinal);
+			
+			resultadoComparaSumaVirtu = this.compararPartesSumaVirtualbo(partesSuma, inventarioEgresos);
+			
+			break;
+		}
+		case "VIR01": {
+			LOGGER.info("VIRU VIRU");
+			
+			List<VInventarioEgr> inventarioEgresos = this.vInventarioEgrVirService.listarVInventarioEgr(
+					fechaSalida, paramControlPartes.getCodRecinto(), "ACT", fechaInicio, fechaFinal);
+			
+			resultadoComparaSumaVirtu = this.compararPartesSumaVirtualbo(partesSuma, inventarioEgresos);
+			
+			break;
+		}
+		default:
+			return new ResponseEntity<String>("Error. Código de recinto sin tratamiento", HttpStatus.BAD_REQUEST);
+		}
+				
+		
+		return new ResponseEntity<ResultadoComparaSumaVirtu>(resultadoComparaSumaVirtu, HttpStatus.OK);
+	}
+	
+	
+	private ResultadoComparaSumaVirtu compararPartesSumaVirtualbo(List<ParteSuma> partesSuma, List<VInventarioEgr> listaEgresos) {
+		
+		ResultadoComparaSumaVirtu resultadoComparaSumaVirtu = new ResultadoComparaSumaVirtu();
+		List<ExistenVirtualbo> listaOficialExistenVirtu = new ArrayList<>();
+		List<ParteSuma> listaNoExistenSuma = new ArrayList<>();
+//		List<VInventarioEgr> listaExistenVirtualbo = new ArrayList<>();
+//		List<ParteSuma> listaDifierenSuma = new ArrayList<>();
+		
+		for(ParteSuma ps : partesSuma) {
+			String aduanaParteSuma = ps.getAduana().getAduCod().toString();
+			String gestionParteSuma = ps.getGestion().toString();
+			String nroRegParteSuma = ps.getNroRegistroParte();
+			
+			boolean psAgregado = false;
+			
+			for(VInventarioEgr vie: listaEgresos) {
+				
+				// comparamos si el registro de suma existe en virtualbo
+				if(aduanaParteSuma.equals(vie.getInvAduana()) && 
+						gestionParteSuma.equals(vie.getInvGestion()) && 
+						nroRegParteSuma.equals(vie.getInvNroreg())) {
+					
+					
+//					if(vieAgregado == false) {
+						// agrupamos los elementos de la lista por salida segun el parte inventario
+						int bultosSaldoVirtu = 0;
+						
+						for(VInventarioEgr vie2: listaEgresos) {
+							if(vie.getInvParte().equals(vie2.getInvParteS())) {
+								bultosSaldoVirtu = bultosSaldoVirtu + vie2.getBultoSaldo().intValue();
+							}
+						}
+						
+//						vieAgregado = true;
+						psAgregado = true;
+//						listaExistenVirtualbo.add(vie);
+						
+						listaOficialExistenVirtu.add(new ExistenVirtualbo(bultosSaldoVirtu, vie));
+						break;
+//					}
+					
+				}
+			}
+			
+			if(psAgregado == false) {
+				listaNoExistenSuma.add(ps);				
+			}
+		}
+		
+		System.out.println("listaOficialExistenVirtu: " + listaOficialExistenVirtu.size());
+		System.out.println("listaNoExistenVirtu: " + listaNoExistenSuma.size());
+		
+		resultadoComparaSumaVirtu.setListaExistenVirtu(listaOficialExistenVirtu);
+		resultadoComparaSumaVirtu.setListaNoExistenSuma(listaNoExistenSuma);
+		
+		return resultadoComparaSumaVirtu;
+	}
+	
+	public Date convertToDateViaSqlTimestamp(LocalDateTime dateToConvert) {
+	    return java.sql.Timestamp.valueOf(dateToConvert);
 	}
 	
 	private UsuarioParte procesarUsuarioParte(String usuario) {
@@ -365,6 +528,26 @@ public class ControlOperativoController {
 		df.setMaximumFractionDigits(340); //340 = DecimalFormat.DOUBLE_FRACTION_DIGITS
 
 		return df.format(valor);
+	}
+	
+	/**
+	 * funcion q convierte un texto con la fecha a LocalDateTime
+	 */
+	public LocalDateTime fechaStringToLocalDateTime(String cadenaFecha) {
+		DateTimeFormatter formatoFecha = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+		LocalDateTime fechaconvertida = LocalDateTime.parse(cadenaFecha, formatoFecha);
+		return fechaconvertida;
+	}
+	
+	public Date fechaStringToDate(String cadenaFecha) {
+		SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault());
+		try {
+//			Date date = formatter.parse(cadenaFecha);
+			return formatter.parse(cadenaFecha);
+		} catch (ParseException e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
 
 }

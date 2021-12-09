@@ -18,6 +18,12 @@ spring:
       username: SOA
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
+    soa-chb:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@192.168.226.5:1521:XE
+      username: SOA
+      password: ${PASSWORD_SOA}
+      hibernate-hbm2ddl-auto: none
     soa-vir:
       driver-class-name: oracle.jdbc.OracleDriver
       jdbc-url: jdbc:oracle:thin:@192.168.221.5:1521:XE

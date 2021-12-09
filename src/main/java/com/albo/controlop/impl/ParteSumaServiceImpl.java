@@ -53,4 +53,9 @@ public class ParteSumaServiceImpl implements IParteSumaService {
 				nroManifiesto, registroManifiesto, documentoEmbarque, documentoRelacionado, placaPatente);
 	}
 
+	@Override
+	public List<ParteSuma> buscarPorFechaRecepcion(LocalDateTime fechaInicial, LocalDateTime fechaFinal) {
+		return parteSumaRepo.buscarPorFechaRecepcion(fechaInicial, fechaFinal);
+	}
+
 }
