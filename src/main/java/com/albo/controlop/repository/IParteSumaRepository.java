@@ -9,13 +9,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.albo.controlop.model.EstadoParte;
-import com.albo.controlop.model.ParteSuma;
+import com.albo.controlop.model.ParteSumaExcel;
 
 @Repository
-public interface IParteSumaRepository extends JpaRepository<ParteSuma, Integer> {
+public interface IParteSumaRepository extends JpaRepository<ParteSumaExcel, Integer> {
 
 	@Query("FROM ParteSuma ps WHERE ps.parteRecepcion = :parteRecepcion")
-	ParteSuma buscarPorParteRecepcion(@Param("parteRecepcion") String parteRecepcion);
+	ParteSumaExcel buscarPorParteRecepcion(@Param("parteRecepcion") String parteRecepcion);
 	
 	@Query("FROM ParteSuma ps WHERE "
 			+ "ps.parteRecepcion = :parteRecepcion "
@@ -26,7 +26,7 @@ public interface IParteSumaRepository extends JpaRepository<ParteSuma, Integer> 
 			+ "AND ps.documentoEmbarque = :documentoEmbarque "
 			+ "AND ps.documentoRelacionado = :documentoRelacionado "
 			+ "AND ps.placaPatente = :placaPatente")
-	ParteSuma buscarPorRegistroRepetido(
+	ParteSumaExcel buscarPorRegistroRepetido(
 			@Param("parteRecepcion") String parteRecepcion,
 			@Param("estadoParte") EstadoParte estadoParte,
 			@Param("fechaRecepcion") LocalDateTime fechaRecepcion,
@@ -37,7 +37,7 @@ public interface IParteSumaRepository extends JpaRepository<ParteSuma, Integer> 
 			@Param("placaPatente") String placaPatente);
 	
 	@Query("FROM ParteSuma ps WHERE ps.fechaRecepcion >= :fechaInicial AND ps.fechaRecepcion <= :fechaFinal")
-	List<ParteSuma> buscarPorFechaRecepcion(
+	List<ParteSumaExcel> buscarPorFechaRecepcion(
 			@Param("fechaInicial") LocalDateTime fechaInicial,
 			@Param("fechaFinal") LocalDateTime fechaFinal);
 }

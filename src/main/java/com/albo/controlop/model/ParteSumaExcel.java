@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 @Entity
 @Table(name = "parte_suma", schema = "PUBLIC")
-public class ParteSuma implements Serializable {
+public class ParteSumaExcel implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 

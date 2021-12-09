@@ -40,7 +40,7 @@ public class Aduana implements Serializable {
 
 	@JsonIgnore
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "aduana")
-	private List<ParteSuma> partesSuma = new ArrayList<ParteSuma>();
+	private List<ParteSumaExcel> partesSuma = new ArrayList<ParteSumaExcel>();
 
 	/** Fin Campos BD **/
 
@@ -86,11 +86,11 @@ public class Aduana implements Serializable {
 		this.recintos = recintos;
 	}
 
-	public List<ParteSuma> getPartesSuma() {
+	public List<ParteSumaExcel> getPartesSuma() {
 		return partesSuma;
 	}
 
-	public void setPartesSuma(List<ParteSuma> partesSuma) {
+	public void setPartesSuma(List<ParteSumaExcel> partesSuma) {
 		this.partesSuma = partesSuma;
 	}
 

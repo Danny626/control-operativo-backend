@@ -29,7 +29,7 @@ public class EstadoParte implements Serializable {
 
 	@JsonIgnore
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "estadoParte")
-	private List<ParteSuma> partesSuma = new ArrayList<ParteSuma>();
+	private List<ParteSumaExcel> partesSuma = new ArrayList<ParteSumaExcel>();
 
 	public String getNombre() {
 		return nombre;
@@ -47,11 +47,11 @@ public class EstadoParte implements Serializable {
 		this.descripcion = descripcion;
 	}
 
-	public List<ParteSuma> getPartesSuma() {
+	public List<ParteSumaExcel> getPartesSuma() {
 		return partesSuma;
 	}
 
-	public void setPartesSuma(List<ParteSuma> partesSuma) {
+	public void setPartesSuma(List<ParteSumaExcel> partesSuma) {
 		this.partesSuma = partesSuma;
 	}
 

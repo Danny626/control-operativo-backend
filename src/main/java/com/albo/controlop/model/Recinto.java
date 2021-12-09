@@ -49,7 +49,7 @@ public class Recinto implements Serializable {
 
 	@JsonIgnore
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "recinto")
-	private List<ParteSuma> partesSuma = new ArrayList<ParteSuma>();
+	private List<ParteSumaExcel> partesSuma = new ArrayList<ParteSumaExcel>();
 
 	/** fin campos bd **/
 
@@ -111,11 +111,11 @@ public class Recinto implements Serializable {
 		this.usuario = usuario;
 	}
 
-	public List<ParteSuma> getPartesSuma() {
+	public List<ParteSumaExcel> getPartesSuma() {
 		return partesSuma;
 	}
 
-	public void setPartesSuma(List<ParteSuma> partesSuma) {
+	public void setPartesSuma(List<ParteSumaExcel> partesSuma) {
 		this.partesSuma = partesSuma;
 	}
 

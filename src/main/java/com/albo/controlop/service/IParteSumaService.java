@@ -4,16 +4,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.albo.controlop.model.EstadoParte;
-import com.albo.controlop.model.ParteSuma;
+import com.albo.controlop.model.ParteSumaExcel;
 
-public interface IParteSumaService extends IService<ParteSuma, Integer> {
+public interface IParteSumaService extends IService<ParteSumaExcel, Integer> {
 
-	ParteSuma buscarPorParteRecepcion(String parteRecepcion);
+	ParteSumaExcel buscarPorParteRecepcion(String parteRecepcion);
 	
-	ParteSuma buscarPorRegistroRepetido(
+	ParteSumaExcel buscarPorRegistroRepetido(
 			String parteRecepcion, EstadoParte estadoParte,
 			LocalDateTime fechaRecepcion, String nroManifiesto,	String registroManifiesto,
 			String documentoEmbarque, String documentoRelacionado, String placaPatente);
 	
-	List<ParteSuma> buscarPorFechaRecepcion(LocalDateTime fechaInicial, LocalDateTime fechaFinal);
+	List<ParteSumaExcel> buscarPorFechaRecepcion(LocalDateTime fechaInicial, LocalDateTime fechaFinal);
 }

@@ -45,7 +45,7 @@ import com.albo.controlop.dto.ResultadoCargaExcel;
 import com.albo.controlop.dto.ResultadoComparaSumaVirtu;
 import com.albo.controlop.model.Aduana;
 import com.albo.controlop.model.DestinatarioParte;
-import com.albo.controlop.model.ParteSuma;
+import com.albo.controlop.model.ParteSumaExcel;
 import com.albo.controlop.model.Recinto;
 import com.albo.controlop.model.UsuarioParte;
 import com.albo.controlop.service.IAduanaService;
@@ -105,7 +105,7 @@ public class ControlOperativoController {
 	public ResponseEntity<?> cargaArchivo(PedidoCargaArchivo paquete) {
 
 		Map<Integer, List<String>> data = this.readExcelFile(paquete.getFile());
-		List<ParteSuma> partesSuma = new ArrayList<>();
+		List<ParteSumaExcel> partesSuma = new ArrayList<>();
 		List<ErrorExcel> errores = new ArrayList<>();
 		int[] contadorError = {0};
 		int[] contadorProcesadosCorrectos = {0};
@@ -120,7 +120,7 @@ public class ControlOperativoController {
 			contadorError[0] = 0;
 
 			// celda PR
-			ParteSuma parte = this.procesarPR(value.get(1));
+			ParteSumaExcel parte = this.procesarPR(value.get(1));
 			
 			// si no se registró el cód. aduana mandamos error
 			if(parte.getAduana() == null) {
@@ -188,7 +188,7 @@ public class ControlOperativoController {
 					parte.setRecinto(recinto.get());
 					parte.setFechaRegistro(LocalDateTime.now());
 					
-					ParteSuma parteCreado = this.parteSumaService.saveOrUpdate(parte);
+					ParteSumaExcel parteCreado = this.parteSumaService.saveOrUpdate(parte);
 					contadorProcesadosCorrectos[0]++;
 					
 					if(parteCreado == null) {
@@ -231,7 +231,7 @@ public class ControlOperativoController {
 		LOGGER.info("fechaFinalProceso: " + fechaFinalProceso);
 		
 		// buscamos los partes en el rango de fechas de recepción dadas
-		List<ParteSuma> partesSuma = new ArrayList<ParteSuma>();
+		List<ParteSumaExcel> partesSuma = new ArrayList<ParteSumaExcel>();
 		partesSuma = this.parteSumaService.buscarPorFechaRecepcion(fechaInicioProceso, fechaFinalProceso);
 		
 		ResultadoComparaSumaVirtu resultadoComparaSumaVirtu;
@@ -293,15 +293,15 @@ public class ControlOperativoController {
 	}
 	
 	
-	private ResultadoComparaSumaVirtu compararPartesSumaVirtualbo(List<ParteSuma> partesSuma, List<VInventarioEgr> listaEgresos) {
+	private ResultadoComparaSumaVirtu compararPartesSumaVirtualbo(List<ParteSumaExcel> partesSuma, List<VInventarioEgr> listaEgresos) {
 		
 		ResultadoComparaSumaVirtu resultadoComparaSumaVirtu = new ResultadoComparaSumaVirtu();
 		List<ExistenVirtualbo> listaOficialExistenVirtu = new ArrayList<>();
-		List<ParteSuma> listaNoExistenSuma = new ArrayList<>();
+		List<ParteSumaExcel> listaNoExistenSuma = new ArrayList<>();
 //		List<VInventarioEgr> listaExistenVirtualbo = new ArrayList<>();
 //		List<ParteSuma> listaDifierenSuma = new ArrayList<>();
 		
-		for(ParteSuma ps : partesSuma) {
+		for(ParteSumaExcel ps : partesSuma) {
 			String aduanaParteSuma = ps.getAduana().getAduCod().toString();
 			String gestionParteSuma = ps.getGestion().toString();
 			String nroRegParteSuma = ps.getNroRegistroParte();
@@ -425,8 +425,8 @@ public class ControlOperativoController {
 
 	// se procesa el PR devolviendo el objeto ParteSuma con los datos de
 	// parteRecepcion, gestion, nroRegistroParte y aduana llenados
-	private ParteSuma procesarPR(String pr) {		
-		ParteSuma parte = new ParteSuma();
+	private ParteSumaExcel procesarPR(String pr) {		
+		ParteSumaExcel parte = new ParteSumaExcel();
 
 		// separamos la cadena de texto del PR
 		String[] cadenaParte = pr.split("-");

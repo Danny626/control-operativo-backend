@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 
-import com.albo.controlop.model.ParteSuma;
+import com.albo.controlop.model.ParteSumaExcel;
 
 public class ResultadoCargaExcel {
 
@@ -14,7 +14,7 @@ public class ResultadoCargaExcel {
 	private Integer registrosNoGuardados;
 	private HttpStatus responseCode;
 	private String uploadStatus;
-	private List<ParteSuma> partesSuma;
+	private List<ParteSumaExcel> partesSuma;
 	private List<ErrorExcel> registrosError;
 
 	public Integer getTotalRegistros() {
@@ -49,11 +49,11 @@ public class ResultadoCargaExcel {
 		this.registrosNoGuardados = registrosNoGuardados;
 	}
 
-	public List<ParteSuma> getPartesSuma() {
+	public List<ParteSumaExcel> getPartesSuma() {
 		return partesSuma;
 	}
 
-	public void setPartesSuma(List<ParteSuma> partesSuma) {
+	public void setPartesSuma(List<ParteSumaExcel> partesSuma) {
 		this.partesSuma = partesSuma;
 	}
 

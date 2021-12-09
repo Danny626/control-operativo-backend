@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.albo.controlop.model.EstadoParte;
-import com.albo.controlop.model.ParteSuma;
+import com.albo.controlop.model.ParteSumaExcel;
 import com.albo.controlop.repository.IParteSumaRepository;
 import com.albo.controlop.service.IParteSumaService;
 
@@ -19,18 +19,18 @@ public class ParteSumaServiceImpl implements IParteSumaService {
 	private IParteSumaRepository parteSumaRepo;
 
 	@Override
-	public List<ParteSuma> findAll() {
+	public List<ParteSumaExcel> findAll() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Optional<ParteSuma> findById(Integer id) {
+	public Optional<ParteSumaExcel> findById(Integer id) {
 		return parteSumaRepo.findById(id);
 	}
 
 	@Override
-	public ParteSuma saveOrUpdate(ParteSuma t) {
+	public ParteSumaExcel saveOrUpdate(ParteSumaExcel t) {
 		return parteSumaRepo.save(t);
 	}
 
@@ -41,12 +41,12 @@ public class ParteSumaServiceImpl implements IParteSumaService {
 	}
 
 	@Override
-	public ParteSuma buscarPorParteRecepcion(String parteRecepcion) {
+	public ParteSumaExcel buscarPorParteRecepcion(String parteRecepcion) {
 		return parteSumaRepo.buscarPorParteRecepcion(parteRecepcion);
 	}
 
 	@Override
-	public ParteSuma buscarPorRegistroRepetido(String parteRecepcion, EstadoParte estadoParte,
+	public ParteSumaExcel buscarPorRegistroRepetido(String parteRecepcion, EstadoParte estadoParte,
 			LocalDateTime fechaRecepcion, String nroManifiesto, String registroManifiesto, String documentoEmbarque,
 			String documentoRelacionado, String placaPatente) {
 		return parteSumaRepo.buscarPorRegistroRepetido(parteRecepcion, estadoParte, fechaRecepcion, 
@@ -54,7 +54,7 @@ public class ParteSumaServiceImpl implements IParteSumaService {
 	}
 
 	@Override
-	public List<ParteSuma> buscarPorFechaRecepcion(LocalDateTime fechaInicial, LocalDateTime fechaFinal) {
+	public List<ParteSumaExcel> buscarPorFechaRecepcion(LocalDateTime fechaInicial, LocalDateTime fechaFinal) {
 		return parteSumaRepo.buscarPorFechaRecepcion(fechaInicial, fechaFinal);
 	}
 
