@@ -14,10 +14,10 @@ import com.albo.controlop.model.ParteSumaExcel;
 @Repository
 public interface IParteSumaExcelRepository extends JpaRepository<ParteSumaExcel, Integer> {
 
-	@Query("FROM ParteSuma ps WHERE ps.parteRecepcion = :parteRecepcion")
+	@Query("FROM ParteSumaExcel ps WHERE ps.parteRecepcion = :parteRecepcion")
 	ParteSumaExcel buscarPorParteRecepcion(@Param("parteRecepcion") String parteRecepcion);
 	
-	@Query("FROM ParteSuma ps WHERE "
+	@Query("FROM ParteSumaExcel ps WHERE "
 			+ "ps.parteRecepcion = :parteRecepcion "
 			+ "AND ps.estadoParte = :estadoParte "
 			+ "AND ps.fechaRecepcion = :fechaRecepcion "
@@ -36,7 +36,7 @@ public interface IParteSumaExcelRepository extends JpaRepository<ParteSumaExcel,
 			@Param("documentoRelacionado") String documentoRelacionado,
 			@Param("placaPatente") String placaPatente);
 	
-	@Query("FROM ParteSuma ps WHERE ps.fechaRecepcion >= :fechaInicial AND ps.fechaRecepcion <= :fechaFinal")
+	@Query("FROM ParteSumaExcel ps WHERE ps.fechaRecepcion >= :fechaInicial AND ps.fechaRecepcion <= :fechaFinal")
 	List<ParteSumaExcel> buscarPorFechaRecepcion(
 			@Param("fechaInicial") LocalDateTime fechaInicial,
 			@Param("fechaFinal") LocalDateTime fechaFinal);

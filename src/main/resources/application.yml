@@ -1,6 +1,6 @@
 server:
   port: 8080
-  address: localhost
+  address: 192.168.200.118
   servlet:
     context-path: /controlOperativo-backend
 spring:
@@ -50,5 +50,8 @@ security:
     scope-read: read
     scope-write: write
     resource-ids: ${RESOURCE_ID}
-    
 property: false
+suma:
+  api:
+    host:
+      baseUrl: https://suma.aduana.gob.bo
