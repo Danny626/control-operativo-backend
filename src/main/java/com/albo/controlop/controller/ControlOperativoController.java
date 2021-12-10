@@ -51,7 +51,7 @@ import com.albo.controlop.model.UsuarioParte;
 import com.albo.controlop.service.IAduanaService;
 import com.albo.controlop.service.IDestinatarioParteService;
 import com.albo.controlop.service.IEstadoParteService;
-import com.albo.controlop.service.IParteSumaService;
+import com.albo.controlop.service.IParteSumaExcelService;
 import com.albo.controlop.service.IRecintoService;
 import com.albo.controlop.service.ITipoCargaParteService;
 import com.albo.controlop.service.IUsuarioParteService;
@@ -83,7 +83,7 @@ public class ControlOperativoController {
 	private IUsuarioParteService usuarioParteService;
 	
 	@Autowired
-	private IParteSumaService parteSumaService;
+	private IParteSumaExcelService parteSumaExcelService;
 	
 	@Autowired
 	private IRecintoService recintoService;
@@ -178,7 +178,7 @@ public class ControlOperativoController {
 			
 			if(contadorError[0] == 0) {
 				// control registros repetidos
-				if(this.parteSumaService.buscarPorRegistroRepetido(parte.getParteRecepcion(), parte.getEstadoParte(),
+				if(this.parteSumaExcelService.buscarPorRegistroRepetido(parte.getParteRecepcion(), parte.getEstadoParte(),
 						parte.getFechaRecepcion(), parte.getNroManifiesto(), parte.getRegistroManifiesto(), 
 						parte.getDocumentoEmbarque(), parte.getDocumentoRelacionado(), parte.getPlacaPatente()) != null) {
 					
@@ -188,7 +188,7 @@ public class ControlOperativoController {
 					parte.setRecinto(recinto.get());
 					parte.setFechaRegistro(LocalDateTime.now());
 					
-					ParteSumaExcel parteCreado = this.parteSumaService.saveOrUpdate(parte);
+					ParteSumaExcel parteCreado = this.parteSumaExcelService.saveOrUpdate(parte);
 					contadorProcesadosCorrectos[0]++;
 					
 					if(parteCreado == null) {
@@ -232,7 +232,7 @@ public class ControlOperativoController {
 		
 		// buscamos los partes en el rango de fechas de recepción dadas
 		List<ParteSumaExcel> partesSuma = new ArrayList<ParteSumaExcel>();
-		partesSuma = this.parteSumaService.buscarPorFechaRecepcion(fechaInicioProceso, fechaFinalProceso);
+		partesSuma = this.parteSumaExcelService.buscarPorFechaRecepcion(fechaInicioProceso, fechaFinalProceso);
 		
 		ResultadoComparaSumaVirtu resultadoComparaSumaVirtu;
 		String fechaSalida = paramControlPartes.getFechaSalida().replace("-", "/");
@@ -423,7 +423,7 @@ public class ControlOperativoController {
 		return dateTime;
 	}
 
-	// se procesa el PR devolviendo el objeto ParteSuma con los datos de
+	// se procesa el PR devolviendo el objeto ParteSumaExcel con los datos de
 	// parteRecepcion, gestion, nroRegistroParte y aduana llenados
 	private ParteSumaExcel procesarPR(String pr) {		
 		ParteSumaExcel parte = new ParteSumaExcel();
