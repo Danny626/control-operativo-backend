@@ -9,102 +9,105 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 @Entity
-@Table(name = "parte_suma", catalog = "", schema = "SOA")
+@Table(name = "PARTE_SUMA", catalog = "", schema = "SOA")
 public class ParteSuma implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(nullable = false, unique = true)
+//	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "PARTE_SUMA_SEQ")
+    @SequenceGenerator(name = "PARTE_SUMA_SEQ", sequenceName = "PARTE_SUMA_SEQ", allocationSize = 1)
+	@Column(name = "ID", nullable = false, unique = true)
 	private Long id;
 
-	@Column(name = "id_suma", nullable = false, unique = true)
+	@Column(name = "ID_SUMA", nullable = false, unique = true)
 	private String idSuma;
 
-	@Column(name = "cor", nullable = false)
+	@Column(name = "COR", nullable = false)
 	private String cor;
 
 	@JsonSerialize(using = ToStringSerializer.class)
-	@Column(name = "fec_tra")
+	@Column(name = "FEC_TRA")
 	private LocalDateTime fecTra;
 
-	@Column(name = "dst_oea")
+	@Column(name = "DST_OEA")
 	private Boolean dstOea;
 
-	@Column(name = "dst_cod_tip_doc")
+	@Column(name = "DST_COD_TIP_DOC")
 	private String dstCodTipDoc;
 
-	@Column(name = "dst_num_doc")
+	@Column(name = "DST_NUM_DOC")
 	private String dstNumDoc;
 
-	@Column(name = "dst_nom_raz_soc")
+	@Column(name = "DST_NOM_RAZ_SOC")
 	private String dstNomRazSoc;
 
-	@Column(name = "est_act")
+	@Column(name = "EST_ACT")
 	private String estAct;
 
-	@Column(name = "datgen_num_man")
+	@Column(name = "DATGEN_NUM_MAN")
 	private String datgenNumMan;
 
-	@Column(name = "datgen_num_doc_emb")
+	@Column(name = "DATGEN_NUM_DOC_EMB")
 	private String datgenNumDocEmb;
 
 	@JsonSerialize(using = ToStringSerializer.class)
-	@Column(name = "datgen_fecing")
+	@Column(name = "DATGEN_FECING")
 	private LocalDateTime datgenFecing;
 
-	@Column(name = "datgen_adurec_cod")
-	private Integer datgenAdurecCod;
+	@Column(name = "DATGEN_ADUREC_COD")
+	private String datgenAdurecCod;
 
-	@Column(name = "ingubimer_modreg_des")
+	@Column(name = "INGUBIMER_MODREG_DES")
 	private String ingubimerModregDes;
 
-	@Column(name = "ingubimer_tipcar_des")
+	@Column(name = "INGUBIMER_TIPCAR_DES")
 	private String ingubimerTipcarDes;
 
-	@Column(name = "ingubimer_alm_cod")
+	@Column(name = "INGUBIMER_ALM_COD")
 	private String ingubimerAlmCod;
 
-	@Column(name = "ingubimer_alm_des")
+	@Column(name = "INGUBIMER_ALM_DES")
 	private String ingubimerAlmDes;
 
-	@Column(name = "ingubimer_sec_cod")
+	@Column(name = "INGUBIMER_SEC_COD")
 	private String ingubimerSecCod;
 
-	@Column(name = "ingubimer_sec_des")
+	@Column(name = "INGUBIMER_SEC_DES")
 	private String ingubimerSecDes;
 
-	@Column(name = "ingubimer_emipre_cod")
+	@Column(name = "INGUBIMER_EMIPRE_COD")
 	private String ingubimerEmipreCod;
 
-	@Column(name = "ingubimer_emipre_des")
+	@Column(name = "INGUBIMER_EMIPRE_DES")
 	private String ingubimerEmipreDes;
 
-	@Column(name = "inftec_docfir_usrfir")
+	@Column(name = "INFTEC_DOCFIR_USRFIR")
 	private String inftecDocfirUsrfir;
 
 	@JsonSerialize(using = ToStringSerializer.class)
-	@Column(name = "inftec_docfir_fecfir")
+	@Column(name = "INFTEC_DOCFIR_FECFIR")
 	private LocalDateTime inftecDocfirFecfir;
 
-	@Column(name = "contotsobfal_canrec")
+	@Column(name = "CONTOTSOBFAL_CANREC")
 	private Integer contotsobfalCanrec;
 
-	@Column(name = "contotsobfal_pesrec")
+	@Column(name = "CONTOTSOBFAL_PESREC")
 	private BigDecimal contotsobfalPesrec;
 
 	@JsonSerialize(using = ToStringSerializer.class)
-	@Column(name = "fecha_registro")
+	@Column(name = "FECHA_REGISTRO")
 	private LocalDateTime fechaRegistro;
 
-	@Column(name = "sync")
+	@Column(name = "SYNC")
 	private boolean sync;
 
 	public Long getId() {
@@ -203,11 +206,11 @@ public class ParteSuma implements Serializable {
 		this.datgenFecing = datgenFecing;
 	}
 
-	public Integer getDatgenAdurecCod() {
+	public String getDatgenAdurecCod() {
 		return datgenAdurecCod;
 	}
 
-	public void setDatgenAdurecCod(Integer datgenAdurecCod) {
+	public void setDatgenAdurecCod(String datgenAdurecCod) {
 		this.datgenAdurecCod = datgenAdurecCod;
 	}
 
