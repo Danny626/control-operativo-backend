@@ -218,6 +218,12 @@ public class SumaController {
 	@PostMapping(value = "/registroPartesSuma", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<?> cargaPartesSuma(@RequestBody BodyRegistroPartesSuma bodyRegistroPartesSuma) {
 		
+		// armamos la fecha final
+		LocalDateTime fechaFinalProceso = bodyRegistroPartesSuma.getParamsMisPartesSuma().getTo().withHour(23).withMinute(59).withSecond(59);
+		LOGGER.info("fechaFinalProceso: " + fechaFinalProceso);
+		
+		bodyRegistroPartesSuma.getParamsMisPartesSuma().setTo(fechaFinalProceso);
+				
 		ResponseEntity<List<ParteSumaProceso>> response = this.requestMisPartesSuma(bodyRegistroPartesSuma);
 		ResultadoRegistroPartesSuma resultadoRegistroPartesSuma = new ResultadoRegistroPartesSuma();
 
