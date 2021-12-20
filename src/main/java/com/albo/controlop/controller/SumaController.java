@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import com.albo.controlop.dto.BodyLoginSuma;
 import com.albo.controlop.dto.BodyRegistroPartesSuma;
 import com.albo.controlop.dto.ErrorParte;
 import com.albo.controlop.dto.ParamsLoginSuma;
@@ -218,57 +219,112 @@ public class SumaController {
 	@PostMapping(value = "/registroPartesSuma", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<?> cargaPartesSuma(@RequestBody BodyRegistroPartesSuma bodyRegistroPartesSuma) {
 		
+		// armamos la fecha inicial
+		LocalDateTime fechaInicialProceso = bodyRegistroPartesSuma.getParamsMisPartesSuma().getFrom().withHour(0).withMinute(0).withSecond(0);
+		LOGGER.info("fechaInicialProceso: " + fechaInicialProceso);
+		
 		// armamos la fecha final
 		LocalDateTime fechaFinalProceso = bodyRegistroPartesSuma.getParamsMisPartesSuma().getTo().withHour(23).withMinute(59).withSecond(59);
 		LOGGER.info("fechaFinalProceso: " + fechaFinalProceso);
 		
+		bodyRegistroPartesSuma.getParamsMisPartesSuma().setFrom(fechaInicialProceso);
 		bodyRegistroPartesSuma.getParamsMisPartesSuma().setTo(fechaFinalProceso);
-				
-		ResponseEntity<List<ParteSumaProceso>> response = this.requestMisPartesSuma(bodyRegistroPartesSuma);
-		ResultadoRegistroPartesSuma resultadoRegistroPartesSuma = new ResultadoRegistroPartesSuma();
-
-		switch (response.getStatusCode()) {
-		case OK:
-			resultadoRegistroPartesSuma = this.registroPrmSumaSoa(response.getBody(),
-					bodyRegistroPartesSuma.getCodRecinto());
-			return new ResponseEntity<>(resultadoRegistroPartesSuma, HttpStatus.OK);
-		case UNAUTHORIZED:
-			LOGGER.error("/registroPartesSuma => " + "UNAUTHORIZED");
+		
+		// hacemos el request de registros suma, recorriendo sus páginas de partes según la fecha
+		Long fechaInicialEpoch = this.localDateTimeToEpochMilliseconds(bodyRegistroPartesSuma.getParamsMisPartesSuma().getFrom());
+		Long fechaFinalEpoch = this.localDateTimeToEpochMilliseconds(bodyRegistroPartesSuma.getParamsMisPartesSuma().getTo());
+		
+		ResponseEntity<List<ParteSumaProceso>> listaPartesSumaResultado = this.requestPartesSuma(bodyRegistroPartesSuma, fechaInicialEpoch, fechaFinalEpoch);
+			
+		// si la listaPartesSumaResultado contiene un error UNAUTHORIZED,
+		// intentamos un re-login
+		if(listaPartesSumaResultado.getStatusCode() == HttpStatus.UNAUTHORIZED) {
 			LOGGER.info("Intentando Re-login en Suma con usuario "
 					+ bodyRegistroPartesSuma.getBodyLoginSuma().getNombreUsuario());
 
-			ParamsLoginSuma paramsLoginSuma = new ParamsLoginSuma();
-			paramsLoginSuma.setCodRecinto(bodyRegistroPartesSuma.getCodRecinto());
-			paramsLoginSuma.setBodyLoginSuma(bodyRegistroPartesSuma.getBodyLoginSuma());
+			ResponseEntity<ResultLoginSuma> resultLoginSuma = this.reLoginSuma(bodyRegistroPartesSuma.getCodRecinto(), bodyRegistroPartesSuma.getBodyLoginSuma());
 			
-			this.eliminaTokenUsuarioSuma(bodyRegistroPartesSuma.getBodyLoginSuma().getNombreUsuario(), bodyRegistroPartesSuma.getCodRecinto());
-			
-			ResponseEntity<ResultLoginSuma> responseLoginSuma = this.loginSuma(paramsLoginSuma);
-
-			switch (responseLoginSuma.getStatusCode()) {
-			case OK:
-				ResultLoginSuma resultLoginSuma = responseLoginSuma.getBody();
-
-				if (resultLoginSuma.isSuccess()) {
-					bodyRegistroPartesSuma.setToken(resultLoginSuma.getResult().getToken());
-
-					// volvemos a hacer el request de partes
-					response = this.requestMisPartesSuma(bodyRegistroPartesSuma);
-					resultadoRegistroPartesSuma = this.registroPrmSumaSoa(response.getBody(),
-							bodyRegistroPartesSuma.getCodRecinto());
-
-					return new ResponseEntity<>(resultadoRegistroPartesSuma, HttpStatus.OK);
-				} else {
-					return new ResponseEntity<>(responseLoginSuma, HttpStatus.BAD_REQUEST);
-				}
-			default:
-				LOGGER.error("Error login SUMA: " + responseLoginSuma.getStatusCode());
-				return new ResponseEntity<>(responseLoginSuma, HttpStatus.BAD_REQUEST);
+			if(resultLoginSuma.getStatusCode() != HttpStatus.OK) {
+				LOGGER.error("Error login SUMA: " + resultLoginSuma.getStatusCode());
+				return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
 			}
-		default:
-			LOGGER.error("Error login SUMA: " + response.getStatusCode());
-			return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 		}
+		
+		// si el relogin es correcto, volvemos a realizar el request de partes suma
+		listaPartesSumaResultado = null;
+		listaPartesSumaResultado = this.requestPartesSuma(bodyRegistroPartesSuma, fechaInicialEpoch, fechaFinalEpoch);
+		
+		// guardamos los registros partes suma conseguidos
+		ResultadoRegistroPartesSuma resultadoRegistroPartesSuma = this.registroPrmSumaSoa(listaPartesSumaResultado.getBody(), bodyRegistroPartesSuma.getCodRecinto());			
+		
+		return new ResponseEntity<>(resultadoRegistroPartesSuma, HttpStatus.OK);
+	}
+	
+	
+	// realiza nuevamente un login con suma
+	public ResponseEntity<ResultLoginSuma> reLoginSuma(String codRecinto, BodyLoginSuma bodyLoginSuma) {
+		ParamsLoginSuma paramsLoginSuma = new ParamsLoginSuma();
+		paramsLoginSuma.setCodRecinto(codRecinto);
+		paramsLoginSuma.setBodyLoginSuma(bodyLoginSuma);
+		
+		// elimino el token guardado si es q este ya existía en bd 
+		this.eliminaTokenUsuarioSuma(bodyLoginSuma.getNombreUsuario(), codRecinto);
+		
+		ResponseEntity<ResultLoginSuma> responseLoginSuma = this.loginSuma(paramsLoginSuma);
+		ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+		
+		switch (responseLoginSuma.getStatusCode()) {
+		case OK:
+			resultLoginSuma = responseLoginSuma.getBody();
+			return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+		default:
+			LOGGER.error("Error login SUMA: " + responseLoginSuma.getStatusCode());
+			return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.BAD_REQUEST);
+		}
+	}
+	
+	
+	// Realiza el request de partes suma segun la fecha.
+	// En caso de UNAUTHORIZED, retorna el listado de partes conseguido hasta ese momento
+	// y el HttpStatus.UNAUTHORIZED
+	public ResponseEntity<List<ParteSumaProceso>> requestPartesSuma(
+			BodyRegistroPartesSuma bodyRegistroPartesSuma, Long fechaInicialEpoch, Long fechaFinalEpoch) {
+		
+		List<ParteSumaProceso> partesSuma = new ArrayList<>();
+		boolean buscar = true;
+		int pagina = 0;
+		
+		while(buscar == true) {
+			bodyRegistroPartesSuma.getParamsMisPartesSuma().setPage(pagina);
+			
+			ResponseEntity<List<ParteSumaProceso>> response = this.requestMisPartesSuma(bodyRegistroPartesSuma);
+			
+			if(response.getStatusCode() == HttpStatus.OK) {
+				
+				List<ParteSumaProceso> partesSumaTemp = new ArrayList<>();
+				partesSumaTemp = response.getBody();
+				
+				// recorremos los resultados de la página solicitada
+				for(ParteSumaProceso ps : partesSumaTemp) {
+					if(ps.getFecTra() >= fechaInicialEpoch && ps.getFecTra() <= fechaFinalEpoch) {
+						partesSuma.add(ps);
+					}
+					
+					if(ps.getFecTra() < fechaFinalEpoch) {
+						buscar = false;
+						break;
+					}
+				}
+				pagina++;
+			}
+			
+			if(response.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+				LOGGER.error("/registroPartesSuma => " + "UNAUTHORIZED");
+				return new ResponseEntity<List<ParteSumaProceso>>(partesSuma, response.getStatusCode());
+			}
+		}
+		
+		return new ResponseEntity<List<ParteSumaProceso>>(partesSuma, HttpStatus.OK);	
 	}
 	
 	public ResponseEntity<ResultLoginSuma> requestLoginSuma(ParamsLoginSuma paramsLoginSuma) {
