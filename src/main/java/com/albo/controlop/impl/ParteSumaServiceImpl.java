@@ -29,8 +29,7 @@ public class ParteSumaServiceImpl implements IParteSumaService {
 
 	@Override
 	public ParteSuma saveOrUpdate(ParteSuma t) {
-		// TODO Auto-generated method stub
-		return null;
+		return parteSumaRepo.save(t);
 	}
 
 	@Override

@@ -44,4 +44,9 @@ public class ParteSumaChbServiceImpl implements IParteSumaChbService {
 		return parteSumaChbRepo.buscarPorIdSuma(idSuma);
 	}
 
+	@Override
+	public List<ParteSuma> buscarPorSync(boolean sync) {
+		return parteSumaChbRepo.buscarPorSync(sync);
+	}
+
 }

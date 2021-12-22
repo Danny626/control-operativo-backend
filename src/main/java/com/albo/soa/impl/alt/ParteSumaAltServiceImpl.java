@@ -44,4 +44,9 @@ public class ParteSumaAltServiceImpl implements IParteSumaAltService {
 		return parteSumaAltRepo.buscarPorIdSuma(idSuma);
 	}
 
+	@Override
+	public List<ParteSuma> buscarPorSync(boolean sync) {
+		return parteSumaAltRepo.buscarPorSync(sync);
+	}
+
 }

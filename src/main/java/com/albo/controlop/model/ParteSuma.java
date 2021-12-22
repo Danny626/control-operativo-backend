@@ -63,7 +63,7 @@ public class ParteSuma implements Serializable {
 	private LocalDateTime datgenFecing;
 
 	@Column(name = "datgen_adurec_cod")
-	private Integer datgenAdurecCod;
+	private String datgenAdurecCod;
 
 	@Column(name = "ingubimer_modreg_des")
 	private String ingubimerModregDes;
@@ -106,9 +106,13 @@ public class ParteSuma implements Serializable {
 	@Column(name = "fecha_registro")
 	private LocalDateTime fechaRegistro;
 
+	@JsonSerialize(using = ToStringSerializer.class)
+	@Column(name = "fecha_registro_sync")
+	private LocalDateTime fechaRegistroSync;
+
 	@ManyToOne
-	@JoinColumn(name = "usuario", referencedColumnName = "usuario")
-	private Usuario usuario;
+	@JoinColumn(name = "usuario_sync", referencedColumnName = "usuario")
+	private Usuario usuarioSync;
 
 	public Long getId() {
 		return id;
@@ -206,11 +210,11 @@ public class ParteSuma implements Serializable {
 		this.datgenFecing = datgenFecing;
 	}
 
-	public Integer getDatgenAdurecCod() {
+	public String getDatgenAdurecCod() {
 		return datgenAdurecCod;
 	}
 
-	public void setDatgenAdurecCod(Integer datgenAdurecCod) {
+	public void setDatgenAdurecCod(String datgenAdurecCod) {
 		this.datgenAdurecCod = datgenAdurecCod;
 	}
 
@@ -318,12 +322,20 @@ public class ParteSuma implements Serializable {
 		this.fechaRegistro = fechaRegistro;
 	}
 
-	public Usuario getUsuario() {
-		return usuario;
+	public LocalDateTime getFechaRegistroSync() {
+		return fechaRegistroSync;
 	}
 
-	public void setUsuario(Usuario usuario) {
-		this.usuario = usuario;
+	public void setFechaRegistroSync(LocalDateTime fechaRegistroSync) {
+		this.fechaRegistroSync = fechaRegistroSync;
+	}
+
+	public Usuario getUsuarioSync() {
+		return usuarioSync;
+	}
+
+	public void setUsuarioSync(Usuario usuarioSync) {
+		this.usuarioSync = usuarioSync;
 	}
 
 }

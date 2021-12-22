@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.persistence.RollbackException;
 import javax.validation.Valid;
 
 import org.apache.logging.log4j.LogManager;
@@ -31,6 +32,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,27 +41,37 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.albo.controlop.dto.ErrorExcel;
+import com.albo.controlop.dto.ErrorParte;
 import com.albo.controlop.dto.ExistenVirtualbo;
 import com.albo.controlop.dto.ParamControlPartes;
 import com.albo.controlop.dto.PedidoCargaArchivo;
 import com.albo.controlop.dto.ResultadoCargaExcel;
 import com.albo.controlop.dto.ResultadoComparaSumaVirtu;
+import com.albo.controlop.dto.ResultadoRegistroPartesSuma;
 import com.albo.controlop.model.Aduana;
 import com.albo.controlop.model.DestinatarioParte;
 import com.albo.controlop.model.ParteSumaExcel;
 import com.albo.controlop.model.Recinto;
+import com.albo.controlop.model.Usuario;
 import com.albo.controlop.model.UsuarioParte;
 import com.albo.controlop.service.IAduanaService;
 import com.albo.controlop.service.IDestinatarioParteService;
 import com.albo.controlop.service.IEstadoParteService;
 import com.albo.controlop.service.IParteSumaExcelService;
+import com.albo.controlop.service.IParteSumaService;
 import com.albo.controlop.service.IRecintoService;
 import com.albo.controlop.service.ITipoCargaParteService;
 import com.albo.controlop.service.IUsuarioParteService;
+import com.albo.controlop.service.IUsuarioService;
+import com.albo.soa.model.ParteSuma;
 import com.albo.soa.model.VInventarioEgr;
+import com.albo.soa.service.alt.IParteSumaAltService;
 import com.albo.soa.service.alt.IVInventarioEgrAltService;
+import com.albo.soa.service.chb.IParteSumaChbService;
 import com.albo.soa.service.chb.IVInventarioEgrChbService;
+import com.albo.soa.service.scz.IParteSumaSczService;
 import com.albo.soa.service.scz.IVInventarioEgrSczService;
+import com.albo.soa.service.vir.IParteSumaVirService;
 import com.albo.soa.service.vir.IVInventarioEgrVirService;
 
 @RestController
@@ -99,6 +112,26 @@ public class ControlOperativoController {
 	
 	@Autowired
 	private IVInventarioEgrVirService vInventarioEgrVirService;
+	
+	@Autowired
+	private IParteSumaService parteSumaService;
+	
+	@Autowired
+	private IParteSumaVirService parteSumaVirService;
+
+	@Autowired
+	private IParteSumaAltService parteSumaAltService;
+
+	@Autowired
+	private IParteSumaChbService parteSumaChbService;
+
+	@Autowired
+	private IParteSumaSczService parteSumaSczService;
+	
+	@Autowired
+	private IUsuarioService usuarioService;
+	
+	
 
 	@PostMapping(value = "/cargaArchivo", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE }, produces = {
 			MediaType.APPLICATION_JSON_VALUE })
@@ -290,6 +323,132 @@ public class ControlOperativoController {
 				
 		
 		return new ResponseEntity<ResultadoComparaSumaVirtu>(resultadoComparaSumaVirtu, HttpStatus.OK);
+	}
+	
+	
+	@GetMapping(value = "/syncPartes/{codRecinto}/{usuario}", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<?> syncPartes(
+			@PathVariable("codRecinto") String codRecinto,
+			@PathVariable("usuario") String usuario) {
+		
+		ResultadoRegistroPartesSuma resultSync = new ResultadoRegistroPartesSuma();
+		Usuario usuarioObj = this.usuarioService.findById(usuario).get();		
+		
+		switch (codRecinto) {
+		case "ALT01": {
+			List<ParteSuma> partesSumaSoa = new ArrayList<>();
+			partesSumaSoa = this.parteSumaAltService.buscarPorSync(false);
+			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);
+			
+			// actualizamos el valor sync de los partes actualizados
+			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
+				pg.setSync(true);
+				this.parteSumaAltService.saveOrUpdate(pg);
+			}
+			break;
+		}
+		case "CHB01": {
+			List<ParteSuma> partesSumaSoa = new ArrayList<>();
+			partesSumaSoa = this.parteSumaChbService.buscarPorSync(false);
+			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);
+			
+			// actualizamos el valor sync de los partes actualizados
+			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
+				pg.setSync(true);
+				this.parteSumaChbService.saveOrUpdate(pg);
+			}
+			break;
+		}
+		case "PAM01": {
+			List<ParteSuma> partesSumaSoa = new ArrayList<>();
+			partesSumaSoa = this.parteSumaSczService.buscarPorSync(false);
+			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);
+			
+			// actualizamos el valor sync de los partes actualizados
+			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
+				pg.setSync(true);
+				this.parteSumaSczService.saveOrUpdate(pg);
+			}
+			break;
+		}
+		case "VIR01": {
+			List<ParteSuma> partesSumaSoa = new ArrayList<>();
+			partesSumaSoa = this.parteSumaVirService.buscarPorSync(false);
+			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);
+			
+			// actualizamos el valor sync de los partes actualizados
+			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
+				pg.setSync(true);
+				this.parteSumaVirService.saveOrUpdate(pg);
+			}
+			break;
+		}
+		default:
+			LOGGER.error("Error. Cód. de recinto no válido");
+			return new ResponseEntity<ResultadoRegistroPartesSuma>(new ResultadoRegistroPartesSuma(), HttpStatus.BAD_REQUEST);
+		}
+		
+		return new ResponseEntity<ResultadoRegistroPartesSuma>(resultSync, HttpStatus.OK);
+	}
+	
+	private ResultadoRegistroPartesSuma sincronizacionPartesSuma(List<ParteSuma> partesSumaSoa, Usuario usuarioObj) {
+		LocalDateTime fechaActual = LocalDateTime.now();
+		com.albo.controlop.model.ParteSuma parteControl = new com.albo.controlop.model.ParteSuma();
+		List<ErrorParte> registrosError = new ArrayList<>();
+		List<ParteSuma> partesSumaSoaGuardados = new ArrayList<>();
+		
+		try {
+			for(ParteSuma pSoa : partesSumaSoa) {
+				parteControl = new com.albo.controlop.model.ParteSuma();
+				parteControl.setContotsobfalCanrec(pSoa.getContotsobfalCanrec());
+				parteControl.setContotsobfalPesrec(pSoa.getContotsobfalPesrec());
+				parteControl.setCor(pSoa.getCor());
+				parteControl.setDatgenAdurecCod(pSoa.getDatgenAdurecCod());
+				parteControl.setDatgenFecing(pSoa.getDatgenFecing());
+				parteControl.setDatgenNumDocEmb(pSoa.getDatgenNumDocEmb());
+				parteControl.setDatgenNumMan(pSoa.getDatgenNumMan());
+				parteControl.setDstCodTipDoc(pSoa.getDstCodTipDoc());
+				parteControl.setDstNomRazSoc(pSoa.getDstNomRazSoc());
+				parteControl.setDstNumDoc(pSoa.getDstNumDoc());
+				parteControl.setDstOea(pSoa.getDstOea());
+				parteControl.setEstAct(pSoa.getEstAct());
+				parteControl.setFechaRegistro(pSoa.getFechaRegistro());
+				parteControl.setFecTra(pSoa.getFecTra());
+				parteControl.setIdSuma(pSoa.getIdSuma());
+				parteControl.setInftecDocfirFecfir(pSoa.getInftecDocfirFecfir());
+				parteControl.setInftecDocfirUsrfir(pSoa.getInftecDocfirUsrfir());
+				parteControl.setIngubimerAlmCod(pSoa.getIngubimerAlmCod());
+				parteControl.setIngubimerAlmDes(pSoa.getIngubimerAlmDes());
+				parteControl.setIngubimerEmipreCod(pSoa.getIngubimerEmipreCod());
+				parteControl.setIngubimerEmipreDes(pSoa.getIngubimerEmipreDes());
+				parteControl.setIngubimerModregDes(pSoa.getIngubimerModregDes());
+				parteControl.setIngubimerSecCod(pSoa.getIngubimerSecCod());
+				parteControl.setIngubimerSecDes(pSoa.getIngubimerSecDes());
+				parteControl.setIngubimerTipcarDes(pSoa.getIngubimerTipcarDes());
+				parteControl.setFechaRegistroSync(fechaActual);
+				parteControl.setUsuarioSync(usuarioObj);
+				
+				// guardamos el parteSuma
+				if (this.parteSumaService.saveOrUpdate(parteControl) == null) {
+					registrosError.add(new ErrorParte(parteControl.getCor(), "Error sincronizando ParteSuma"));
+					LOGGER.error("Error sincronizando ParteSuma: " + parteControl.getCor());
+				} else {
+					partesSumaSoaGuardados.add(pSoa);
+				}
+			}
+		} catch (RollbackException e) {
+			registrosError.add(new ErrorParte(parteControl.getCor(), "ParteSuma ya sincronizado"));
+			LOGGER.info("ParteSuma ya sincronizado: " + parteControl.getCor());
+		}
+		
+		ResultadoRegistroPartesSuma resultSync = new ResultadoRegistroPartesSuma();
+		resultSync.setRegistrosError(registrosError);
+		resultSync.setPartesSumaGuardados(partesSumaSoaGuardados);
+		resultSync.setRegistrosGuardados(partesSumaSoaGuardados.size());
+		resultSync.setRegistrosNoGuardados(registrosError.size());
+		resultSync.setTotalRegistros(partesSumaSoa.size());
+		
+		return resultSync;
 	}
 	
 	

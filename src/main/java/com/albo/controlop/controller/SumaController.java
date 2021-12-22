@@ -237,12 +237,13 @@ public class SumaController {
 		ResponseEntity<List<ParteSumaProceso>> listaPartesSumaResultado = this.requestPartesSuma(bodyRegistroPartesSuma, fechaInicialEpoch, fechaFinalEpoch);
 			
 		// si la listaPartesSumaResultado contiene un error UNAUTHORIZED,
-		// intentamos un re-login
+		// intentamos un re-login		
 		if(listaPartesSumaResultado.getStatusCode() == HttpStatus.UNAUTHORIZED) {
 			LOGGER.info("Intentando Re-login en Suma con usuario "
 					+ bodyRegistroPartesSuma.getBodyLoginSuma().getNombreUsuario());
 
 			ResponseEntity<ResultLoginSuma> resultLoginSuma = this.reLoginSuma(bodyRegistroPartesSuma.getCodRecinto(), bodyRegistroPartesSuma.getBodyLoginSuma());
+			bodyRegistroPartesSuma.setToken(resultLoginSuma.getBody().getResult().getToken());
 			
 			if(resultLoginSuma.getStatusCode() != HttpStatus.OK) {
 				LOGGER.error("Error login SUMA: " + resultLoginSuma.getStatusCode());
@@ -251,7 +252,6 @@ public class SumaController {
 		}
 		
 		// si el relogin es correcto, volvemos a realizar el request de partes suma
-		listaPartesSumaResultado = null;
 		listaPartesSumaResultado = this.requestPartesSuma(bodyRegistroPartesSuma, fechaInicialEpoch, fechaFinalEpoch);
 		
 		// guardamos los registros partes suma conseguidos
