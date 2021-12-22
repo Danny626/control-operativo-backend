@@ -17,16 +17,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import com.albo.controlop.dto.BodyLoginSuma;
 import com.albo.controlop.dto.BodyRegistroPartesSuma;
 import com.albo.controlop.dto.ErrorParte;
 import com.albo.controlop.dto.ParamsLoginSuma;
+import com.albo.controlop.dto.RespVerificaTokenSuma;
 import com.albo.controlop.dto.ResultLoginSuma;
 import com.albo.controlop.dto.ResultTokenSuma;
 import com.albo.controlop.dto.ResultadoRegistroPartesSuma;
@@ -49,6 +50,7 @@ public class SumaController {
 	private static final Logger LOGGER = LogManager.getLogger(SumaController.class);
 	private final String URI_LOGIN_SUMA = "/b-sso/rest/autenticar/portal?operador=ip";
 	private final String URI_MIS_PARTES_SUMA = "/b-ingreso/api/json/pre/120585022/prms";
+	private final String URI_VERIFICA_TOKEN_SUMA = "/b-sso/rest/autenticar/verificar";
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -93,121 +95,102 @@ public class SumaController {
 			AccessTokenSuma accessTokenSuma = this.accessTokenSumaAltService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
 			
 			if(accessTokenSuma != null) {
-				ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
-				resultTokenSuma.setToken(accessTokenSuma.getToken());
-				resultTokenSuma.setUrl("/portal/listener.html#/listener");
 				
-				ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
-				resultLoginSuma.setSuccess(true);
-				resultLoginSuma.setResult(resultTokenSuma);
+				// verificamos la validez del token
+				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
-				return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
-			} else {
-				ResponseEntity<ResultLoginSuma> response = this.requestLoginSuma(paramsLoginSuma);
-
-				switch (response.getStatusCode()) {
-				case OK:
-					AccessTokenSuma accessTokenSumaGuardar = new AccessTokenSuma();
-					accessTokenSumaGuardar.setUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
-					accessTokenSumaGuardar.setToken(response.getBody().getResult().getToken());
+				if (revisaToken.getBody().isSuccess() == true) {
+					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
+					resultTokenSuma.setToken(accessTokenSuma.getToken());
+					resultTokenSuma.setUrl("/portal/listener.html#/listener");
 					
-					this.accessTokenSumaAltService.saveOrUpdate(accessTokenSumaGuardar);
-					return new ResponseEntity<ResultLoginSuma>(response.getBody(), HttpStatus.OK);
-				default:
-					LOGGER.error("Error login SUMA: " + response.getStatusCode());
-					return new ResponseEntity<>(response.getBody(), HttpStatus.BAD_REQUEST);
+					ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+					resultLoginSuma.setSuccess(true);
+					resultLoginSuma.setResult(resultTokenSuma);
+					
+					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
 				}
+				
+				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
+				
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			} else {
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
 			}
 		}
 		case "CHB01": {
 			AccessTokenSuma accessTokenSuma = this.accessTokenSumaChbService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
 			
 			if(accessTokenSuma != null) {
-				ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
-				resultTokenSuma.setToken(accessTokenSuma.getToken());
-				resultTokenSuma.setUrl("/portal/listener.html#/listener");
 				
-				ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
-				resultLoginSuma.setSuccess(true);
-				resultLoginSuma.setResult(resultTokenSuma);
+				// verificamos la validez del token
+				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
-				return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
-			} else {
-				ResponseEntity<ResultLoginSuma> response = this.requestLoginSuma(paramsLoginSuma);
-
-				switch (response.getStatusCode()) {
-				case OK:
-					AccessTokenSuma accessTokenSumaGuardar = new AccessTokenSuma();
-					accessTokenSumaGuardar.setUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
-					accessTokenSumaGuardar.setToken(response.getBody().getResult().getToken());
+				if (revisaToken.getBody().isSuccess() == true) {
+					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
+					resultTokenSuma.setToken(accessTokenSuma.getToken());
+					resultTokenSuma.setUrl("/portal/listener.html#/listener");
 					
-					this.accessTokenSumaChbService.saveOrUpdate(accessTokenSumaGuardar);
-					return new ResponseEntity<ResultLoginSuma>(response.getBody(), HttpStatus.OK);
-				default:
-					LOGGER.error("Error login SUMA: " + response.getStatusCode());
-					return new ResponseEntity<>(response.getBody(), HttpStatus.BAD_REQUEST);
+					ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+					resultLoginSuma.setSuccess(true);
+					resultLoginSuma.setResult(resultTokenSuma);
+					
+					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
 				}
+				
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			} else {
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
 			}
 		}
 		case "PAM01": {
 			AccessTokenSuma accessTokenSuma = this.accessTokenSumaSczService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
 			
 			if(accessTokenSuma != null) {
-				ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
-				resultTokenSuma.setToken(accessTokenSuma.getToken());
-				resultTokenSuma.setUrl("/portal/listener.html#/listener");
 				
-				ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
-				resultLoginSuma.setSuccess(true);
-				resultLoginSuma.setResult(resultTokenSuma);
+				// verificamos la validez del token
+				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
-				return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
-			} else {
-				ResponseEntity<ResultLoginSuma> response = this.requestLoginSuma(paramsLoginSuma);
-
-				switch (response.getStatusCode()) {
-				case OK:
-					AccessTokenSuma accessTokenSumaGuardar = new AccessTokenSuma();
-					accessTokenSumaGuardar.setUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
-					accessTokenSumaGuardar.setToken(response.getBody().getResult().getToken());
+				if (revisaToken.getBody().isSuccess() == true) {
+					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
+					resultTokenSuma.setToken(accessTokenSuma.getToken());
+					resultTokenSuma.setUrl("/portal/listener.html#/listener");
 					
-					this.accessTokenSumaSczService.saveOrUpdate(accessTokenSumaGuardar);
-					return new ResponseEntity<ResultLoginSuma>(response.getBody(), HttpStatus.OK);
-				default:
-					LOGGER.error("Error login SUMA: " + response.getStatusCode());
-					return new ResponseEntity<>(response.getBody(), HttpStatus.BAD_REQUEST);
+					ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+					resultLoginSuma.setSuccess(true);
+					resultLoginSuma.setResult(resultTokenSuma);
+					
+					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
 				}
+				
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			} else {
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
 			}
 		}
 		case "VIR01": {
 			AccessTokenSuma accessTokenSuma = this.accessTokenSumaVirService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
 			
 			if(accessTokenSuma != null) {
-				ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
-				resultTokenSuma.setToken(accessTokenSuma.getToken());
-				resultTokenSuma.setUrl("/portal/listener.html#/listener");
 				
-				ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
-				resultLoginSuma.setSuccess(true);
-				resultLoginSuma.setResult(resultTokenSuma);
+				// verificamos la validez del token
+				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
-				return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
-			} else {
-				ResponseEntity<ResultLoginSuma> response = this.requestLoginSuma(paramsLoginSuma);
-
-				switch (response.getStatusCode()) {
-				case OK:
-					AccessTokenSuma accessTokenSumaGuardar = new AccessTokenSuma();
-					accessTokenSumaGuardar.setUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
-					accessTokenSumaGuardar.setToken(response.getBody().getResult().getToken());
+				if (revisaToken.getBody().isSuccess() == true) {
+					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
+					resultTokenSuma.setToken(accessTokenSuma.getToken());
+					resultTokenSuma.setUrl("/portal/listener.html#/listener");
 					
-					this.accessTokenSumaVirService.saveOrUpdate(accessTokenSumaGuardar);
+					ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+					resultLoginSuma.setSuccess(true);
+					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(response.getBody(), HttpStatus.OK);
-				default:
-					LOGGER.error("Error login SUMA: " + response.getStatusCode());
-					return new ResponseEntity<>(response.getBody(), HttpStatus.BAD_REQUEST);
+					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
 				}
+				
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			} else {
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
 			}
 		}
 		default:
@@ -215,6 +198,7 @@ public class SumaController {
 			return new ResponseEntity<ResultLoginSuma>(resultLoginError, HttpStatus.BAD_REQUEST);
 		}
 	}
+	
 
 	@PostMapping(value = "/registroPartesSuma", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<?> cargaPartesSuma(@RequestBody BodyRegistroPartesSuma bodyRegistroPartesSuma) {
@@ -234,41 +218,10 @@ public class SumaController {
 		Long fechaInicialEpoch = this.localDateTimeToEpochMilliseconds(bodyRegistroPartesSuma.getParamsMisPartesSuma().getFrom());
 		Long fechaFinalEpoch = this.localDateTimeToEpochMilliseconds(bodyRegistroPartesSuma.getParamsMisPartesSuma().getTo());
 		
-		ResponseEntity<List<ParteSumaProceso>> listaPartesSumaResultado = this.requestPartesSuma(bodyRegistroPartesSuma, fechaInicialEpoch, fechaFinalEpoch);
-			
-		// si la listaPartesSumaResultado contiene un error UNAUTHORIZED,
-		// intentamos un re-login		
-		if(listaPartesSumaResultado.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-			LOGGER.info("Intentando Re-login en Suma con usuario "
-					+ bodyRegistroPartesSuma.getBodyLoginSuma().getNombreUsuario());
-
-			ResponseEntity<ResultLoginSuma> resultLoginSuma = this.reLoginSuma(bodyRegistroPartesSuma.getCodRecinto(), bodyRegistroPartesSuma.getBodyLoginSuma());
-			bodyRegistroPartesSuma.setToken(resultLoginSuma.getBody().getResult().getToken());
-			
-			if(resultLoginSuma.getStatusCode() != HttpStatus.OK) {
-				LOGGER.error("Error login SUMA: " + resultLoginSuma.getStatusCode());
-				return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
-			}
-		}
-		
-		// si el relogin es correcto, volvemos a realizar el request de partes suma
-		listaPartesSumaResultado = this.requestPartesSuma(bodyRegistroPartesSuma, fechaInicialEpoch, fechaFinalEpoch);
-		
-		// guardamos los registros partes suma conseguidos
-		ResultadoRegistroPartesSuma resultadoRegistroPartesSuma = this.registroPrmSumaSoa(listaPartesSumaResultado.getBody(), bodyRegistroPartesSuma.getCodRecinto());			
-		
-		return new ResponseEntity<>(resultadoRegistroPartesSuma, HttpStatus.OK);
-	}
-	
-	
-	// realiza nuevamente un login con suma
-	public ResponseEntity<ResultLoginSuma> reLoginSuma(String codRecinto, BodyLoginSuma bodyLoginSuma) {
+		// verificamos la validez del token
 		ParamsLoginSuma paramsLoginSuma = new ParamsLoginSuma();
-		paramsLoginSuma.setCodRecinto(codRecinto);
-		paramsLoginSuma.setBodyLoginSuma(bodyLoginSuma);
-		
-		// elimino el token guardado si es q este ya existía en bd 
-		this.eliminaTokenUsuarioSuma(bodyLoginSuma.getNombreUsuario(), codRecinto);
+		paramsLoginSuma.setCodRecinto(bodyRegistroPartesSuma.getCodRecinto());
+		paramsLoginSuma.setBodyLoginSuma(bodyRegistroPartesSuma.getBodyLoginSuma());
 		
 		ResponseEntity<ResultLoginSuma> responseLoginSuma = this.loginSuma(paramsLoginSuma);
 		ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
@@ -276,11 +229,39 @@ public class SumaController {
 		switch (responseLoginSuma.getStatusCode()) {
 		case OK:
 			resultLoginSuma = responseLoginSuma.getBody();
-			return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+			bodyRegistroPartesSuma.setToken(resultLoginSuma.getResult().getToken());
+			
+			ResponseEntity<List<ParteSumaProceso>> listaPartesSumaResultado = this.requestPartesSuma(bodyRegistroPartesSuma, fechaInicialEpoch, fechaFinalEpoch);
+
+			// guardamos los registros partes suma conseguidos
+			ResultadoRegistroPartesSuma resultadoRegistroPartesSuma = this.registroPrmSumaSoa(listaPartesSumaResultado.getBody(), bodyRegistroPartesSuma.getCodRecinto());
+			return new ResponseEntity<ResultadoRegistroPartesSuma>(resultadoRegistroPartesSuma, HttpStatus.OK);
 		default:
 			LOGGER.error("Error login SUMA: " + responseLoginSuma.getStatusCode());
-			return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<String>("Error login SUMA: " + responseLoginSuma.getStatusCode(), HttpStatus.BAD_REQUEST);
 		}
+	}
+	
+	
+	@PostMapping(value = "/verificaTokenSuma/{tk}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<RespVerificaTokenSuma> verificaTokenSuma(@PathVariable("tk") String tk) {
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("sec-ch-ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"96\", \"Google Chrome\";v=\"96\"");
+		headers.set("Accept", "application/json, text/plain, */*");
+//		headers.set("Content-Type", "application/json;charset=UTF-8");
+		headers.set("sec-ch-ua-mobile", "?0");
+		headers.set("User-Agent",
+				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
+		headers.set("sec-ch-ua-platform", "\"Windows\"");
+//		headers.set("Connection", "keep-alive");
+		
+		String urlAutenticacion = URI_VERIFICA_TOKEN_SUMA + "/" + tk;
+
+		RequestEntity<?> request = RequestEntity.get(urlAutenticacion).headers(headers).build();
+
+		ResponseEntity<RespVerificaTokenSuma> response = restTemplate.exchange(request, RespVerificaTokenSuma.class);
+		
+		return response;
 	}
 	
 	
@@ -567,6 +548,23 @@ public class SumaController {
 		}
 		
 		return flagEliminado;
+	}
+	
+	private ResponseEntity<ResultLoginSuma> procesoRequestLoginSuma(ParamsLoginSuma paramsLoginSuma) {
+		ResponseEntity<ResultLoginSuma> response = this.requestLoginSuma(paramsLoginSuma);
+
+		switch (response.getStatusCode()) {
+		case OK:
+			AccessTokenSuma accessTokenSumaGuardar = new AccessTokenSuma();
+			accessTokenSumaGuardar.setUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
+			accessTokenSumaGuardar.setToken(response.getBody().getResult().getToken());
+			
+			this.accessTokenSumaAltService.saveOrUpdate(accessTokenSumaGuardar);
+			return new ResponseEntity<ResultLoginSuma>(response.getBody(), HttpStatus.OK);
+		default:
+			LOGGER.error("Error login SUMA: " + response.getStatusCode());
+			return new ResponseEntity<ResultLoginSuma>(response.getBody(), HttpStatus.BAD_REQUEST);
+		}
 	}
 
 }
