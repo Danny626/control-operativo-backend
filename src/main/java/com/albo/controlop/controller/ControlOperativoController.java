@@ -428,13 +428,28 @@ public class ControlOperativoController {
 				parteControl.setFechaRegistroSync(fechaActual);
 				parteControl.setUsuarioSync(usuarioObj);
 				
-				// guardamos el parteSuma
-				if (this.parteSumaService.saveOrUpdate(parteControl) == null) {
-					registrosError.add(new ErrorParte(parteControl.getCor(), "Error sincronizando ParteSuma"));
-					LOGGER.error("Error sincronizando ParteSuma: " + parteControl.getCor());
+				com.albo.controlop.model.ParteSuma parteExistente = this.parteSumaService.buscarPorPrmSuma(pSoa.getCor());
+				// buscamos si el parte no se encuentra en la bd
+				if(parteExistente == null) {
+					// guardamos el parteSuma
+					if (this.parteSumaService.saveOrUpdate(parteControl) == null) {
+						registrosError.add(new ErrorParte(parteControl.getCor(), "Error sincronizando ParteSuma"));
+						LOGGER.error("Error sincronizando ParteSuma: " + parteControl.getCor());
+					} else {
+						partesSumaSoaGuardados.add(pSoa);
+					}
 				} else {
-					partesSumaSoaGuardados.add(pSoa);
+					// modificamos el parte
+					parteControl.setId(parteExistente.getId());
+					
+					if (this.parteSumaService.saveOrUpdate(parteControl) == null) {
+						registrosError.add(new ErrorParte(parteControl.getCor(), "Error sincronizando ParteSuma"));
+						LOGGER.error("Error sincronizando ParteSuma: " + parteControl.getCor());
+					} else {
+						partesSumaSoaGuardados.add(pSoa);
+					}
 				}
+				
 			}
 		} catch (RollbackException e) {
 			registrosError.add(new ErrorParte(parteControl.getCor(), "ParteSuma ya sincronizado"));

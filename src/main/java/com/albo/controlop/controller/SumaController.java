@@ -17,11 +17,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.albo.controlop.dto.BodyRegistroPartesSuma;
@@ -49,8 +51,9 @@ public class SumaController {
 
 	private static final Logger LOGGER = LogManager.getLogger(SumaController.class);
 	private final String URI_LOGIN_SUMA = "/b-sso/rest/autenticar/portal?operador=ip";
-	private final String URI_MIS_PARTES_SUMA = "/b-ingreso/api/json/pre/120585022/prms";
 	private final String URI_VERIFICA_TOKEN_SUMA = "/b-sso/rest/autenticar/verificar";
+	private final String URI_MIS_PARTES_SUMA = "/b-ingreso/api/json/pre/120585022/prms";
+	private final String URI_CONTEO_PARTES_SUMA = "/b-ingreso/api/json/pre/120585022/count";
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -138,6 +141,8 @@ public class SumaController {
 					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
 				}
 				
+				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
+				
 				return this.procesoRequestLoginSuma(paramsLoginSuma);
 			} else {
 				return this.procesoRequestLoginSuma(paramsLoginSuma);
@@ -162,6 +167,8 @@ public class SumaController {
 					
 					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
 				}
+				
+				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
 				return this.procesoRequestLoginSuma(paramsLoginSuma);
 			} else {
@@ -188,6 +195,8 @@ public class SumaController {
 					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
 				}
 				
+				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
+				
 				return this.procesoRequestLoginSuma(paramsLoginSuma);
 			} else {
 				return this.procesoRequestLoginSuma(paramsLoginSuma);
@@ -204,19 +213,20 @@ public class SumaController {
 	public ResponseEntity<?> cargaPartesSuma(@RequestBody BodyRegistroPartesSuma bodyRegistroPartesSuma) {
 		
 		// armamos la fecha inicial
-		LocalDateTime fechaInicialProceso = bodyRegistroPartesSuma.getParamsMisPartesSuma().getFrom().withHour(0).withMinute(0).withSecond(0);
+		LocalDateTime fechaInicialProceso = bodyRegistroPartesSuma.getParamsMisPartesSuma().getFrom().withHour(0).withMinute(0).withSecond(0).withNano(0);
 		LOGGER.info("fechaInicialProceso: " + fechaInicialProceso);
 		
 		// armamos la fecha final
-		LocalDateTime fechaFinalProceso = bodyRegistroPartesSuma.getParamsMisPartesSuma().getTo().withHour(23).withMinute(59).withSecond(59);
+//		LocalDateTime fechaFinalProceso = bodyRegistroPartesSuma.getParamsMisPartesSuma().getTo().withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+		LocalDateTime fechaFinalProceso = fechaInicialProceso;
 		LOGGER.info("fechaFinalProceso: " + fechaFinalProceso);
 		
 		bodyRegistroPartesSuma.getParamsMisPartesSuma().setFrom(fechaInicialProceso);
 		bodyRegistroPartesSuma.getParamsMisPartesSuma().setTo(fechaFinalProceso);
 		
 		// hacemos el request de registros suma, recorriendo sus páginas de partes según la fecha
-		Long fechaInicialEpoch = this.localDateTimeToEpochMilliseconds(bodyRegistroPartesSuma.getParamsMisPartesSuma().getFrom());
-		Long fechaFinalEpoch = this.localDateTimeToEpochMilliseconds(bodyRegistroPartesSuma.getParamsMisPartesSuma().getTo());
+//		Long fechaInicialEpoch = this.localDateTimeToEpochMilliseconds(bodyRegistroPartesSuma.getParamsMisPartesSuma().getFrom());
+//		Long fechaFinalEpoch = this.localDateTimeToEpochMilliseconds(bodyRegistroPartesSuma.getParamsMisPartesSuma().getTo());
 		
 		// verificamos la validez del token
 		ParamsLoginSuma paramsLoginSuma = new ParamsLoginSuma();
@@ -231,10 +241,20 @@ public class SumaController {
 			resultLoginSuma = responseLoginSuma.getBody();
 			bodyRegistroPartesSuma.setToken(resultLoginSuma.getResult().getToken());
 			
-			ResponseEntity<List<ParteSumaProceso>> listaPartesSumaResultado = this.requestPartesSuma(bodyRegistroPartesSuma, fechaInicialEpoch, fechaFinalEpoch);
+			// realizamos la consulta de la cantidad de partes existentes en suma 
+			ResponseEntity<?> conteoPrSuma = this.conteoPartesSuma(bodyRegistroPartesSuma.getUsuario(), bodyRegistroPartesSuma.getToken(),bodyRegistroPartesSuma.getParamsMisPartesSuma().getTipPre(), fechaInicialProceso, fechaFinalProceso, bodyRegistroPartesSuma.getBodyMisPartesSuma().getEstadoParte());
+			
+			// realizamos el pedido de partes suma
+			ResponseEntity<List<ParteSumaProceso>> listaPartesSumaResultado = this.requestPartesSuma(bodyRegistroPartesSuma, Integer.valueOf(conteoPrSuma.getBody().toString()));
 
 			// guardamos los registros partes suma conseguidos
 			ResultadoRegistroPartesSuma resultadoRegistroPartesSuma = this.registroPrmSumaSoa(listaPartesSumaResultado.getBody(), bodyRegistroPartesSuma.getCodRecinto());
+			
+			// si la consulta del conteo de partes suma es correcto lo establecemoc en totalRegistros
+			if(conteoPrSuma.getStatusCode() == HttpStatus.OK) {
+				resultadoRegistroPartesSuma.setTotalRegistros(Integer.valueOf(conteoPrSuma.getBody().toString()));
+			}
+			
 			return new ResponseEntity<ResultadoRegistroPartesSuma>(resultadoRegistroPartesSuma, HttpStatus.OK);
 		default:
 			LOGGER.error("Error login SUMA: " + responseLoginSuma.getStatusCode());
@@ -243,16 +263,16 @@ public class SumaController {
 	}
 	
 	
-	@PostMapping(value = "/verificaTokenSuma/{tk}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@GetMapping(value = "/verificaTokenSuma/{tk}", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<RespVerificaTokenSuma> verificaTokenSuma(@PathVariable("tk") String tk) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("sec-ch-ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"96\", \"Google Chrome\";v=\"96\"");
 		headers.set("Accept", "application/json, text/plain, */*");
-//		headers.set("Content-Type", "application/json;charset=UTF-8");
 		headers.set("sec-ch-ua-mobile", "?0");
 		headers.set("User-Agent",
 				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
 		headers.set("sec-ch-ua-platform", "\"Windows\"");
+		headers.set("Content-Type", "application/json;charset=UTF-8");
 //		headers.set("Connection", "keep-alive");
 		
 		String urlAutenticacion = URI_VERIFICA_TOKEN_SUMA + "/" + tk;
@@ -261,22 +281,75 @@ public class SumaController {
 
 		ResponseEntity<RespVerificaTokenSuma> response = restTemplate.exchange(request, RespVerificaTokenSuma.class);
 		
+		if(response.getBody().isSuccess() == true) {
+			return new ResponseEntity<RespVerificaTokenSuma>(response.getBody(), response.getStatusCode());
+		}
+		
+		return new ResponseEntity<RespVerificaTokenSuma>(new RespVerificaTokenSuma(), response.getStatusCode());
+	}
+	
+	@GetMapping(value = "/conteoPartesSuma", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<?> conteoPartesSuma(String userName, String token, List<String> listaTipPre, LocalDateTime desde, LocalDateTime hasta, List<String> listaEstadosPartes) {
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("sec-ch-ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"96\", \"Google Chrome\";v=\"96\"");
+		headers.set("sec-ch-ua-mobile", "?0");
+		headers.set("User-Agent",
+				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
+		headers.set("Content-Type", "application/json;charset=UTF-8");
+		headers.set("Accept", "application/json, text/plain, */*");
+		headers.set("User", userName);
+		headers.set("Auth-Token", token);
+		headers.set("sec-ch-ua-platform", "\"Windows\"");
+		
+		// armado url
+		String urlConteoPrm = URI_CONTEO_PARTES_SUMA + "?";
+
+		for (String tipPre : listaTipPre) {
+			urlConteoPrm = urlConteoPrm + "&tipPre=" + tipPre;
+		}
+
+		urlConteoPrm = urlConteoPrm + "&to="
+				+ this.localDateTimeToEpochMilliseconds(hasta)
+				+ "&from="
+				+ this.localDateTimeToEpochMilliseconds(desde)
+				+ "&column=" + "cor";
+
+		RequestEntity<?> request = RequestEntity.post(urlConteoPrm).headers(headers)
+				.body(listaEstadosPartes);
+	
+		ResponseEntity<Integer> response = new ResponseEntity<>(null, HttpStatus.OK);
+		
+		try {
+			response = restTemplate.exchange(request, Integer.class);
+		} catch (HttpClientErrorException e) {
+			LOGGER.error("Error obteniendo conteo partes suma: " + e.getResponseBodyAsString());
+			return new ResponseEntity<String>("Error obteniendo conteo partes suma", response.getStatusCode());
+		}
+		
+		LOGGER.info("El conteo de partes es: " + response.getBody());
+
 		return response;
 	}
 	
 	
-	// Realiza el request de partes suma segun la fecha.
-	// En caso de UNAUTHORIZED, retorna el listado de partes conseguido hasta ese momento
-	// y el HttpStatus.UNAUTHORIZED
+	// Realiza el request de partes en suma
 	public ResponseEntity<List<ParteSumaProceso>> requestPartesSuma(
-			BodyRegistroPartesSuma bodyRegistroPartesSuma, Long fechaInicialEpoch, Long fechaFinalEpoch) {
+			BodyRegistroPartesSuma bodyRegistroPartesSuma, Integer conteoPrmSuma) {
 		
 		List<ParteSumaProceso> partesSuma = new ArrayList<>();
 		boolean buscar = true;
 		int pagina = 0;
 		
 		while(buscar == true) {
+			LOGGER.info("Obteniendo página: " + pagina);
 			bodyRegistroPartesSuma.getParamsMisPartesSuma().setPage(pagina);
+			
+			// hacemos una pausa entre requests
+			try {
+				Thread.sleep(20000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 			
 			ResponseEntity<List<ParteSumaProceso>> response = this.requestMisPartesSuma(bodyRegistroPartesSuma);
 			
@@ -286,21 +359,19 @@ public class SumaController {
 				partesSumaTemp = response.getBody();
 				
 				// recorremos los resultados de la página solicitada
-				for(ParteSumaProceso ps : partesSumaTemp) {
-					if(ps.getFecTra() >= fechaInicialEpoch && ps.getFecTra() <= fechaFinalEpoch) {
-						partesSuma.add(ps);
-					}
-					
-					if(ps.getFecTra() < fechaFinalEpoch) {
-						buscar = false;
-						break;
-					}
+				for(ParteSumaProceso ps : partesSumaTemp) {	
+					partesSuma.add(ps);
 				}
-				pagina++;
+				
+				if( pagina < (conteoPrmSuma - 10) ) {
+					pagina = pagina + 10;
+				} else {
+					buscar = false;
+				}
 			}
 			
-			if(response.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-				LOGGER.error("/registroPartesSuma => " + "UNAUTHORIZED");
+			if(response.getStatusCode() != HttpStatus.OK) {
+				LOGGER.error("/registroPartesSuma => " + response.getStatusCode());
 				return new ResponseEntity<List<ParteSumaProceso>>(partesSuma, response.getStatusCode());
 			}
 		}
@@ -377,17 +448,38 @@ public class SumaController {
 					.setContotsobfalPesrec(prm.getConTotSobFal() == null ? null : prm.getConTotSobFal().getPesRec());
 			parteSumaSoa.setFechaRegistro(LocalDateTime.now());
 			parteSumaSoa.setSync(false);
-
+			
 			// realizamos el guardado de acuerdo al recinto
 			switch (recCod) {
 			case "ALT01": {
 				try {
-					if (this.parteSumaAltService.saveOrUpdate(parteSumaSoa) == null) {
-						listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
-						LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+					// verificamos si el parte suma ya existe
+					ParteSuma psExistente = this.parteSumaAltService.buscarPorPrmSuma(parteSumaSoa.getCor());
+					
+					if(psExistente == null) {
+						
+						if (this.parteSumaAltService.saveOrUpdate(parteSumaSoa) == null) {
+							listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
+							LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+						} else {
+							partesSumaGuardados.add(parteSumaSoa);
+						}
+						
 					} else {
-						partesSumaGuardados.add(parteSumaSoa);
+						// verificamos los estados y los modificamos según el caso
+						if(!psExistente.getEstAct().equals("CONCLUIDO") && !psExistente.getEstAct().equals(parteSumaSoa.getEstAct())) {
+							
+							psExistente.setEstAct(parteSumaSoa.getEstAct());
+							
+							if (this.parteSumaAltService.saveOrUpdate(psExistente) == null) {
+								listaError.add(new ErrorParte(psExistente.getCor(), "Error modificando ParteSuma"));
+								LOGGER.error("Error modificando ParteSuma: " + psExistente.getCor());
+							} else {
+								partesSumaGuardados.add(psExistente);
+							}
+						}
 					}
+							
 				} catch (RollbackException e) {
 					listaError.add(new ErrorParte(parteSumaSoa.getCor(), "ParteSuma ya registrado"));
 					LOGGER.info("ParteSuma ya registrado: " + parteSumaSoa.getCor());
@@ -397,44 +489,110 @@ public class SumaController {
 			}
 			case "CHB01": {
 				try {
-					if (this.parteSumaChbService.saveOrUpdate(parteSumaSoa) == null) {
-						listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
-						LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+					// verificamos si el parte suma ya existe
+					ParteSuma psExistente = this.parteSumaChbService.buscarPorPrmSuma(parteSumaSoa.getCor());
+					
+					if(psExistente == null) {
+						
+						if (this.parteSumaChbService.saveOrUpdate(parteSumaSoa) == null) {
+							listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
+							LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+						} else {
+							partesSumaGuardados.add(parteSumaSoa);
+						}
+						
 					} else {
-						partesSumaGuardados.add(parteSumaSoa);
+						// verificamos los estados y los modificamos según el caso
+						if(!psExistente.getEstAct().equals("CONCLUIDO") && !psExistente.getEstAct().equals(parteSumaSoa.getEstAct())) {
+							
+							psExistente.setEstAct(parteSumaSoa.getEstAct());
+							
+							if (this.parteSumaChbService.saveOrUpdate(psExistente) == null) {
+								listaError.add(new ErrorParte(psExistente.getCor(), "Error modificando ParteSuma"));
+								LOGGER.error("Error modificando ParteSuma: " + psExistente.getCor());
+							} else {
+								partesSumaGuardados.add(psExistente);
+							}
+						}
 					}
+							
 				} catch (RollbackException e) {
 					listaError.add(new ErrorParte(parteSumaSoa.getCor(), "ParteSuma ya registrado"));
 					LOGGER.info("ParteSuma ya registrado: " + parteSumaSoa.getCor());
 				}
+
 				break;
 			}
 			case "PAM01": {
 				try {
-					if (this.parteSumaSczService.saveOrUpdate(parteSumaSoa) == null) {
-						listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
-						LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+					// verificamos si el parte suma ya existe
+					ParteSuma psExistente = this.parteSumaSczService.buscarPorPrmSuma(parteSumaSoa.getCor());
+					
+					if(psExistente == null) {
+						
+						if (this.parteSumaSczService.saveOrUpdate(parteSumaSoa) == null) {
+							listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
+							LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+						} else {
+							partesSumaGuardados.add(parteSumaSoa);
+						}
+						
 					} else {
-						partesSumaGuardados.add(parteSumaSoa);
+						// verificamos los estados y los modificamos según el caso
+						if(!psExistente.getEstAct().equals("CONCLUIDO") && !psExistente.getEstAct().equals(parteSumaSoa.getEstAct())) {
+							
+							psExistente.setEstAct(parteSumaSoa.getEstAct());
+							
+							if (this.parteSumaSczService.saveOrUpdate(psExistente) == null) {
+								listaError.add(new ErrorParte(psExistente.getCor(), "Error modificando ParteSuma"));
+								LOGGER.error("Error modificando ParteSuma: " + psExistente.getCor());
+							} else {
+								partesSumaGuardados.add(psExistente);
+							}
+						}
 					}
+							
 				} catch (RollbackException e) {
 					listaError.add(new ErrorParte(parteSumaSoa.getCor(), "ParteSuma ya registrado"));
 					LOGGER.info("ParteSuma ya registrado: " + parteSumaSoa.getCor());
 				}
+
 				break;
 			}
 			case "VIR01": {
 				try {
-					if (this.parteSumaVirService.saveOrUpdate(parteSumaSoa) == null) {
-						listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
-						LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+					// verificamos si el parte suma ya existe
+					ParteSuma psExistente = this.parteSumaVirService.buscarPorPrmSuma(parteSumaSoa.getCor());
+					
+					if(psExistente == null) {
+						
+						if (this.parteSumaVirService.saveOrUpdate(parteSumaSoa) == null) {
+							listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
+							LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+						} else {
+							partesSumaGuardados.add(parteSumaSoa);
+						}
+						
 					} else {
-						partesSumaGuardados.add(parteSumaSoa);
+						// verificamos los estados y los modificamos según el caso
+						if(!psExistente.getEstAct().equals("CONCLUIDO") && !psExistente.getEstAct().equals(parteSumaSoa.getEstAct())) {
+							
+							psExistente.setEstAct(parteSumaSoa.getEstAct());
+							
+							if (this.parteSumaVirService.saveOrUpdate(psExistente) == null) {
+								listaError.add(new ErrorParte(psExistente.getCor(), "Error modificando ParteSuma"));
+								LOGGER.error("Error modificando ParteSuma: " + psExistente.getCor());
+							} else {
+								partesSumaGuardados.add(psExistente);
+							}
+						}
 					}
+							
 				} catch (RollbackException e) {
 					listaError.add(new ErrorParte(parteSumaSoa.getCor(), "ParteSuma ya registrado"));
 					LOGGER.info("ParteSuma ya registrado: " + parteSumaSoa.getCor());
 				}
+
 				break;
 			}
 			default:
@@ -442,7 +600,7 @@ public class SumaController {
 			}
 		}
 
-		resultadoRegistroPartesSuma.setTotalRegistros(misPartesSuma.size());
+//		resultadoRegistroPartesSuma.setTotalRegistros(misPartesSuma.size());
 		resultadoRegistroPartesSuma.setRegistrosNoGuardados(listaError.size());
 		resultadoRegistroPartesSuma.setRegistrosGuardados(partesSumaGuardados.size());
 		resultadoRegistroPartesSuma.setRegistrosError(listaError);
@@ -480,16 +638,17 @@ public class SumaController {
 
 		RequestEntity<?> request = RequestEntity.post(urlPrm).headers(headers)
 				.body(bodyRegistroPartesSuma.getBodyMisPartesSuma().getEstadoParte());
-
-		
+	
 		ResponseEntity<List<ParteSumaProceso>> response = new ResponseEntity<>(new ArrayList<>(), HttpStatus.OK);
 		
 		try {
 			response = restTemplate.exchange(request,
 					new ParameterizedTypeReference<List<ParteSumaProceso>>() {
 					});
-		} catch (Exception e) {
-			return new ResponseEntity<List<ParteSumaProceso>>(new ArrayList<>(), HttpStatus.UNAUTHORIZED);
+		} catch (HttpClientErrorException e) {
+			LOGGER.error("Error obteniendo partes suma: " + e.getResponseBodyAsString());
+			LOGGER.error("Header error: " + response.getHeaders());
+			return new ResponseEntity<List<ParteSumaProceso>>(new ArrayList<>(), response.getStatusCode());
 		}
 
 		return response;
@@ -497,6 +656,7 @@ public class SumaController {
 
 	// convierte una fecha epoch a LocalDateTime
 	public LocalDateTime fechaEpochToLocalDateTime(Long fechaEpoch) {
+		if(fechaEpoch == null) return null;
 		return Instant.ofEpochMilli(fechaEpoch).atZone(ZoneId.systemDefault()).toLocalDateTime();
 	}
 

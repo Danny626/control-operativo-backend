@@ -49,4 +49,9 @@ public class ParteSumaSczServiceImpl implements IParteSumaSczService {
 		return parteSumaSczRepo.buscarPorSync(sync);
 	}
 
+	@Override
+	public ParteSuma buscarPorPrmSuma(String prmSuma) {
+		return parteSumaSczRepo.buscarPorPrmSuma(prmSuma);
+	}
+
 }

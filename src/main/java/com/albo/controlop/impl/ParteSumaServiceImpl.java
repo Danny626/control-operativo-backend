@@ -38,4 +38,9 @@ public class ParteSumaServiceImpl implements IParteSumaService {
 		return null;
 	}
 
+	@Override
+	public ParteSuma buscarPorPrmSuma(String prmSuma) {
+		return parteSumaRepo.buscarPorPrmSuma(prmSuma);
+	}
+
 }

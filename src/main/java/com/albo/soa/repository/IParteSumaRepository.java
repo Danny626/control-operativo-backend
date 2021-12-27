@@ -13,6 +13,9 @@ public interface IParteSumaRepository extends JpaRepository<ParteSuma, Long> {
 	@Query("FROM com.albo.soa.model.ParteSuma ps WHERE ps.idSuma = :idSuma")
 	ParteSuma buscarPorIdSuma(@Param("idSuma") String idSuma);
 	
+	@Query("FROM com.albo.soa.model.ParteSuma ps WHERE ps.cor = :prmSuma")
+	ParteSuma buscarPorPrmSuma(@Param("prmSuma") String prmSuma);
+	
 	@Query("FROM com.albo.soa.model.ParteSuma ps WHERE ps.sync = :sync")
 	List<ParteSuma> buscarPorSync(@Param("sync") boolean sync);
 

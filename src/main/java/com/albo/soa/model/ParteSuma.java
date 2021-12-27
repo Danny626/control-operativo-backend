@@ -28,10 +28,10 @@ public class ParteSuma implements Serializable {
 	@Column(name = "ID", nullable = false, unique = true)
 	private Long id;
 
-	@Column(name = "ID_SUMA", nullable = false, unique = true)
+	@Column(name = "ID_SUMA", nullable = false)
 	private String idSuma;
 
-	@Column(name = "COR", nullable = false)
+	@Column(name = "COR", nullable = false, unique = true)
 	private String cor;
 
 	@JsonSerialize(using = ToStringSerializer.class)

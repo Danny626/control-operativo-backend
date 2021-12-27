@@ -49,4 +49,9 @@ public class ParteSumaVirServiceImpl implements IParteSumaVirService {
 		return parteSumaVirRepo.buscarPorSync(sync);
 	}
 
+	@Override
+	public ParteSuma buscarPorPrmSuma(String prmSuma) {
+		return parteSumaVirRepo.buscarPorPrmSuma(prmSuma);
+	}
+
 }

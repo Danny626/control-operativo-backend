@@ -9,6 +9,8 @@ public interface IParteSumaService extends IService<ParteSuma, Long> {
 
 	ParteSuma buscarPorIdSuma(String idSuma);
 	
+	ParteSuma buscarPorPrmSuma(String prmSuma);
+	
 	List<ParteSuma> buscarPorSync(boolean sync);
 
 }

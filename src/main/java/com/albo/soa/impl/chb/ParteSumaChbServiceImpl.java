@@ -49,4 +49,9 @@ public class ParteSumaChbServiceImpl implements IParteSumaChbService {
 		return parteSumaChbRepo.buscarPorSync(sync);
 	}
 
+	@Override
+	public ParteSuma buscarPorPrmSuma(String prmSuma) {
+		return parteSumaChbRepo.buscarPorPrmSuma(prmSuma);
+	}
+
 }
