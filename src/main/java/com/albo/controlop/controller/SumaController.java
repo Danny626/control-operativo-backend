@@ -148,7 +148,7 @@ public class SumaController {
 				return this.procesoRequestLoginSuma(paramsLoginSuma);
 			}
 		}
-		case "PAM01": {
+		case "SCZ01": {
 			AccessTokenSuma accessTokenSuma = this.accessTokenSumaSczService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
 			
 			if(accessTokenSuma != null) {
@@ -523,7 +523,7 @@ public class SumaController {
 
 				break;
 			}
-			case "PAM01": {
+			case "SCZ01": {
 				try {
 					// verificamos si el parte suma ya existe
 					ParteSuma psExistente = this.parteSumaSczService.buscarPorPrmSuma(parteSumaSoa.getCor());
@@ -686,7 +686,7 @@ public class SumaController {
 			flagEliminado = this.accessTokenSumaChbService.deleteById(accessTokenSuma.getId());
 			break;
 		}
-		case "PAM01": {
+		case "SCZ01": {
 			AccessTokenSuma accessTokenSuma = this.accessTokenSumaSczService.buscarPorUsuario(usuario);
 			
 			if(accessTokenSuma == null) return false;
@@ -711,6 +711,7 @@ public class SumaController {
 	}
 	
 	private ResponseEntity<ResultLoginSuma> procesoRequestLoginSuma(ParamsLoginSuma paramsLoginSuma) {
+		
 		ResponseEntity<ResultLoginSuma> response = this.requestLoginSuma(paramsLoginSuma);
 
 		switch (response.getStatusCode()) {
@@ -719,11 +720,34 @@ public class SumaController {
 			accessTokenSumaGuardar.setUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
 			accessTokenSumaGuardar.setToken(response.getBody().getResult().getToken());
 			
-			this.accessTokenSumaAltService.saveOrUpdate(accessTokenSumaGuardar);
+			// guardamos el token suma
+			this.guardadoTokenSuma(accessTokenSumaGuardar, paramsLoginSuma.getCodRecinto());
+			
 			return new ResponseEntity<ResultLoginSuma>(response.getBody(), HttpStatus.OK);
 		default:
 			LOGGER.error("Error login SUMA: " + response.getStatusCode());
 			return new ResponseEntity<ResultLoginSuma>(response.getBody(), HttpStatus.BAD_REQUEST);
+		}
+	}
+	
+	// función que guarda el token suma según el recinto
+	private AccessTokenSuma guardadoTokenSuma(AccessTokenSuma accessTokenSumaGuardar, String codRecinto) {
+		switch (codRecinto) {
+		case "ALT01": {
+			return this.accessTokenSumaAltService.saveOrUpdate(accessTokenSumaGuardar);
+		}
+		case "CHB01": {
+			return this.accessTokenSumaChbService.saveOrUpdate(accessTokenSumaGuardar);
+		}
+		case "SCZ01": {
+			return this.accessTokenSumaSczService.saveOrUpdate(accessTokenSumaGuardar);
+		}
+		case "VIR01": {
+			return this.accessTokenSumaVirService.saveOrUpdate(accessTokenSumaGuardar);
+		}
+		default:
+			LOGGER.error("Error. Cód. de recinto no válido");
+			return null;
 		}
 	}
 

@@ -296,7 +296,7 @@ public class ControlOperativoController {
 			
 			break;
 		}
-		case "PAM01": {
+		case "SCZ01": {
 			
 			LOGGER.info("PAMPA");
 			
@@ -359,7 +359,7 @@ public class ControlOperativoController {
 			}
 			break;
 		}
-		case "PAM01": {
+		case "SCZ01": {
 			List<ParteSuma> partesSumaSoa = new ArrayList<>();
 			partesSumaSoa = this.parteSumaSczService.buscarPorSync(false);
 			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);

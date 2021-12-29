@@ -33,7 +33,7 @@ public class CORS implements Filter {
 		HttpServletRequest request = (HttpServletRequest) req;
 		
 		response.setHeader("Access-Control-Allow-Origin", "http://localhost:4200");
-		// response.setHeader("Access-Control-Allow-Origin", "http://190.129.90.115:9045");
+//		response.setHeader("Access-Control-Allow-Origin", "http://190.129.90.115:9050");
 		// response.setHeader("Access-Control-Allow-Origin", "https://pesajes.albo.com.bo:9045");
 		response.setHeader("Access-Control-Allow-Methods", "DELETE, GET, OPTIONS, PATCH, POST, PUT");
 		response.setHeader("Access-Control-Max-Age", "3600");
