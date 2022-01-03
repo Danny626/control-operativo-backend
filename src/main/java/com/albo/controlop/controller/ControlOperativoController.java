@@ -67,12 +67,26 @@ import com.albo.soa.model.ParteSuma;
 import com.albo.soa.model.VInventarioEgr;
 import com.albo.soa.service.alt.IParteSumaAltService;
 import com.albo.soa.service.alt.IVInventarioEgrAltService;
+import com.albo.soa.service.ava.IParteSumaAvaService;
+import com.albo.soa.service.ava.IVInventarioEgrAvaService;
+import com.albo.soa.service.ber.IParteSumaBerService;
+import com.albo.soa.service.ber.IVInventarioEgrBerService;
 import com.albo.soa.service.chb.IParteSumaChbService;
 import com.albo.soa.service.chb.IVInventarioEgrChbService;
+import com.albo.soa.service.psg.IParteSumaPsgService;
+import com.albo.soa.service.psg.IVInventarioEgrPsgService;
+import com.albo.soa.service.scr.IParteSumaScrService;
+import com.albo.soa.service.scr.IVInventarioEgrScrService;
 import com.albo.soa.service.scz.IParteSumaSczService;
 import com.albo.soa.service.scz.IVInventarioEgrSczService;
+import com.albo.soa.service.tam.IParteSumaTamService;
+import com.albo.soa.service.tam.IVInventarioEgrTamService;
+import com.albo.soa.service.vil.IParteSumaVilService;
+import com.albo.soa.service.vil.IVInventarioEgrVilService;
 import com.albo.soa.service.vir.IParteSumaVirService;
 import com.albo.soa.service.vir.IVInventarioEgrVirService;
+import com.albo.soa.service.yac.IParteSumaYacService;
+import com.albo.soa.service.yac.IVInventarioEgrYacService;
 
 @RestController
 @RequestMapping("/controlOperativo")
@@ -114,6 +128,27 @@ public class ControlOperativoController {
 	private IVInventarioEgrVirService vInventarioEgrVirService;
 	
 	@Autowired
+	private IVInventarioEgrTamService vInventarioEgrTamService;
+	
+	@Autowired
+	private IVInventarioEgrScrService vInventarioEgrScrService;
+	
+	@Autowired
+	private IVInventarioEgrYacService vInventarioEgrYacService;
+	
+	@Autowired
+	private IVInventarioEgrVilService vInventarioEgrVilService;
+	
+	@Autowired
+	private IVInventarioEgrAvaService vInventarioEgrAvaService;
+	
+	@Autowired
+	private IVInventarioEgrBerService vInventarioEgrBerService;
+	
+	@Autowired
+	private IVInventarioEgrPsgService vInventarioEgrPsgService;
+	
+	@Autowired
 	private IParteSumaService parteSumaService;
 	
 	@Autowired
@@ -127,6 +162,27 @@ public class ControlOperativoController {
 
 	@Autowired
 	private IParteSumaSczService parteSumaSczService;
+	
+	@Autowired
+	private IParteSumaTamService parteSumaTamService;
+	
+	@Autowired
+	private IParteSumaScrService parteSumaScrService;
+	
+	@Autowired
+	private IParteSumaYacService parteSumaYacService;
+	
+	@Autowired
+	private IParteSumaVilService parteSumaVilService;
+	
+	@Autowired
+	private IParteSumaAvaService parteSumaAvaService;
+	
+	@Autowired
+	private IParteSumaBerService parteSumaBerService;
+	
+	@Autowired
+	private IParteSumaPsgService parteSumaPsgService;
 	
 	@Autowired
 	private IUsuarioService usuarioService;
@@ -317,6 +373,76 @@ public class ControlOperativoController {
 			
 			break;
 		}
+		case "TAM01": {
+			LOGGER.info("TAMBO QUEMADO");
+			
+			List<VInventarioEgr> inventarioEgresos = this.vInventarioEgrTamService.listarVInventarioEgr(
+					fechaSalida, paramControlPartes.getCodRecinto(), "ACT", fechaInicio, fechaFinal);
+			
+			resultadoComparaSumaVirtu = this.compararPartesSumaVirtualbo(partesSuma, inventarioEgresos);
+			
+			break;
+		}
+		case "SCR01": {
+			LOGGER.info("SUCRE");
+			
+			List<VInventarioEgr> inventarioEgresos = this.vInventarioEgrScrService.listarVInventarioEgr(
+					fechaSalida, paramControlPartes.getCodRecinto(), "ACT", fechaInicio, fechaFinal);
+			
+			resultadoComparaSumaVirtu = this.compararPartesSumaVirtualbo(partesSuma, inventarioEgresos);
+			
+			break;
+		}
+		case "YAC01": {
+			LOGGER.info("YACUIBA");
+			
+			List<VInventarioEgr> inventarioEgresos = this.vInventarioEgrYacService.listarVInventarioEgr(
+					fechaSalida, paramControlPartes.getCodRecinto(), "ACT", fechaInicio, fechaFinal);
+			
+			resultadoComparaSumaVirtu = this.compararPartesSumaVirtualbo(partesSuma, inventarioEgresos);
+			
+			break;
+		}
+		case "VIL01": {
+			LOGGER.info("VIRU VIRU");
+			
+			List<VInventarioEgr> inventarioEgresos = this.vInventarioEgrVilService.listarVInventarioEgr(
+					fechaSalida, paramControlPartes.getCodRecinto(), "ACT", fechaInicio, fechaFinal);
+			
+			resultadoComparaSumaVirtu = this.compararPartesSumaVirtualbo(partesSuma, inventarioEgresos);
+			
+			break;
+		}
+		case "AVA01": {
+			LOGGER.info("AVAROA");
+			
+			List<VInventarioEgr> inventarioEgresos = this.vInventarioEgrAvaService.listarVInventarioEgr(
+					fechaSalida, paramControlPartes.getCodRecinto(), "ACT", fechaInicio, fechaFinal);
+			
+			resultadoComparaSumaVirtu = this.compararPartesSumaVirtualbo(partesSuma, inventarioEgresos);
+			
+			break;
+		}
+		case "BER01": {
+			LOGGER.info("BERMEJO");
+			
+			List<VInventarioEgr> inventarioEgresos = this.vInventarioEgrBerService.listarVInventarioEgr(
+					fechaSalida, paramControlPartes.getCodRecinto(), "ACT", fechaInicio, fechaFinal);
+			
+			resultadoComparaSumaVirtu = this.compararPartesSumaVirtualbo(partesSuma, inventarioEgresos);
+			
+			break;
+		}
+		case "PSG01": {
+			LOGGER.info("PISIGA");
+			
+			List<VInventarioEgr> inventarioEgresos = this.vInventarioEgrPsgService.listarVInventarioEgr(
+					fechaSalida, paramControlPartes.getCodRecinto(), "ACT", fechaInicio, fechaFinal);
+			
+			resultadoComparaSumaVirtu = this.compararPartesSumaVirtualbo(partesSuma, inventarioEgresos);
+			
+			break;
+		}
 		default:
 			return new ResponseEntity<String>("Error. Código de recinto sin tratamiento", HttpStatus.BAD_REQUEST);
 		}
@@ -380,6 +506,90 @@ public class ControlOperativoController {
 			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
 				pg.setSync(true);
 				this.parteSumaVirService.saveOrUpdate(pg);
+			}
+			break;
+		}
+		case "TAM01": {
+			List<ParteSuma> partesSumaSoa = new ArrayList<>();
+			partesSumaSoa = this.parteSumaTamService.buscarPorSync(false);
+			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);
+			
+			// actualizamos el valor sync de los partes actualizados
+			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
+				pg.setSync(true);
+				this.parteSumaTamService.saveOrUpdate(pg);
+			}
+			break;
+		}
+		case "SCR01": {
+			List<ParteSuma> partesSumaSoa = new ArrayList<>();
+			partesSumaSoa = this.parteSumaScrService.buscarPorSync(false);
+			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);
+			
+			// actualizamos el valor sync de los partes actualizados
+			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
+				pg.setSync(true);
+				this.parteSumaScrService.saveOrUpdate(pg);
+			}
+			break;
+		}
+		case "YAC01": {
+			List<ParteSuma> partesSumaSoa = new ArrayList<>();
+			partesSumaSoa = this.parteSumaYacService.buscarPorSync(false);
+			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);
+			
+			// actualizamos el valor sync de los partes actualizados
+			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
+				pg.setSync(true);
+				this.parteSumaYacService.saveOrUpdate(pg);
+			}
+			break;
+		}
+		case "VIL01": {
+			List<ParteSuma> partesSumaSoa = new ArrayList<>();
+			partesSumaSoa = this.parteSumaVilService.buscarPorSync(false);
+			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);
+			
+			// actualizamos el valor sync de los partes actualizados
+			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
+				pg.setSync(true);
+				this.parteSumaVilService.saveOrUpdate(pg);
+			}
+			break;
+		}
+		case "AVA01": {
+			List<ParteSuma> partesSumaSoa = new ArrayList<>();
+			partesSumaSoa = this.parteSumaAvaService.buscarPorSync(false);
+			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);
+			
+			// actualizamos el valor sync de los partes actualizados
+			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
+				pg.setSync(true);
+				this.parteSumaAvaService.saveOrUpdate(pg);
+			}
+			break;
+		}
+		case "BER01": {
+			List<ParteSuma> partesSumaSoa = new ArrayList<>();
+			partesSumaSoa = this.parteSumaBerService.buscarPorSync(false);
+			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);
+			
+			// actualizamos el valor sync de los partes actualizados
+			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
+				pg.setSync(true);
+				this.parteSumaBerService.saveOrUpdate(pg);
+			}
+			break;
+		}
+		case "PSG01": {
+			List<ParteSuma> partesSumaSoa = new ArrayList<>();
+			partesSumaSoa = this.parteSumaPsgService.buscarPorSync(false);
+			resultSync = this.sincronizacionPartesSuma(partesSumaSoa, usuarioObj);
+			
+			// actualizamos el valor sync de los partes actualizados
+			for(ParteSuma pg : resultSync.getPartesSumaGuardados()) {
+				pg.setSync(true);
+				this.parteSumaPsgService.saveOrUpdate(pg);
 			}
 			break;
 		}

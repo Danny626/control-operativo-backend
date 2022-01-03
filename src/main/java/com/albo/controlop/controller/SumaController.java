@@ -37,12 +37,26 @@ import com.albo.soa.model.AccessTokenSuma;
 import com.albo.soa.model.ParteSuma;
 import com.albo.soa.service.alt.IAccessTokenSumaAltService;
 import com.albo.soa.service.alt.IParteSumaAltService;
+import com.albo.soa.service.ava.IAccessTokenSumaAvaService;
+import com.albo.soa.service.ava.IParteSumaAvaService;
+import com.albo.soa.service.ber.IAccessTokenSumaBerService;
+import com.albo.soa.service.ber.IParteSumaBerService;
 import com.albo.soa.service.chb.IAccessTokenSumaChbService;
 import com.albo.soa.service.chb.IParteSumaChbService;
+import com.albo.soa.service.psg.IAccessTokenSumaPsgService;
+import com.albo.soa.service.psg.IParteSumaPsgService;
+import com.albo.soa.service.scr.IAccessTokenSumaScrService;
+import com.albo.soa.service.scr.IParteSumaScrService;
 import com.albo.soa.service.scz.IAccessTokenSumaSczService;
 import com.albo.soa.service.scz.IParteSumaSczService;
+import com.albo.soa.service.tam.IAccessTokenSumaTamService;
+import com.albo.soa.service.tam.IParteSumaTamService;
+import com.albo.soa.service.vil.IAccessTokenSumaVilService;
+import com.albo.soa.service.vil.IParteSumaVilService;
 import com.albo.soa.service.vir.IAccessTokenSumaVirService;
 import com.albo.soa.service.vir.IParteSumaVirService;
+import com.albo.soa.service.yac.IAccessTokenSumaYacService;
+import com.albo.soa.service.yac.IParteSumaYacService;
 import com.albo.suma.model.ParteSumaProceso;
 
 @RestController
@@ -69,6 +83,27 @@ public class SumaController {
 
 	@Autowired
 	private IParteSumaSczService parteSumaSczService;
+	
+	@Autowired
+	private IParteSumaTamService parteSumaTamService;
+	
+	@Autowired
+	private IParteSumaScrService parteSumaScrService;
+	
+	@Autowired
+	private IParteSumaYacService parteSumaYacService;
+	
+	@Autowired
+	private IParteSumaVilService parteSumaVilService;
+	
+	@Autowired
+	private IParteSumaAvaService parteSumaAvaService;
+	
+	@Autowired
+	private IParteSumaBerService parteSumaBerService;
+	
+	@Autowired
+	private IParteSumaPsgService parteSumaPsgService;
 
 	@Autowired
 	private IAccessTokenSumaAltService accessTokenSumaAltService;
@@ -81,6 +116,27 @@ public class SumaController {
 
 	@Autowired
 	private IAccessTokenSumaVirService accessTokenSumaVirService;
+	
+	@Autowired
+	private IAccessTokenSumaTamService accessTokenSumaTamService;
+	
+	@Autowired
+	private IAccessTokenSumaScrService accessTokenSumaScrService;
+	
+	@Autowired
+	private IAccessTokenSumaYacService accessTokenSumaYacService;
+	
+	@Autowired
+	private IAccessTokenSumaVilService accessTokenSumaVilService;
+	
+	@Autowired
+	private IAccessTokenSumaAvaService accessTokenSumaAvaService;
+	
+	@Autowired
+	private IAccessTokenSumaBerService accessTokenSumaBerService;
+	
+	@Autowired
+	private IAccessTokenSumaPsgService accessTokenSumaPsgService;
 	
 	
 
@@ -177,6 +233,195 @@ public class SumaController {
 		}
 		case "VIR01": {
 			AccessTokenSuma accessTokenSuma = this.accessTokenSumaVirService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
+			
+			if(accessTokenSuma != null) {
+				
+				// verificamos la validez del token
+				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
+				
+				if (revisaToken.getBody().isSuccess() == true) {
+					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
+					resultTokenSuma.setToken(accessTokenSuma.getToken());
+					resultTokenSuma.setUrl("/portal/listener.html#/listener");
+					
+					ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+					resultLoginSuma.setSuccess(true);
+					resultLoginSuma.setResult(resultTokenSuma);
+					
+					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+				}
+				
+				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
+				
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			} else {
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			}
+		}
+		case "TAM01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaTamService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
+			
+			if(accessTokenSuma != null) {
+				
+				// verificamos la validez del token
+				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
+				
+				if (revisaToken.getBody().isSuccess() == true) {
+					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
+					resultTokenSuma.setToken(accessTokenSuma.getToken());
+					resultTokenSuma.setUrl("/portal/listener.html#/listener");
+					
+					ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+					resultLoginSuma.setSuccess(true);
+					resultLoginSuma.setResult(resultTokenSuma);
+					
+					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+				}
+				
+				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
+				
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			} else {
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			}
+		}
+		case "SCR01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaScrService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
+			
+			if(accessTokenSuma != null) {
+				
+				// verificamos la validez del token
+				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
+				
+				if (revisaToken.getBody().isSuccess() == true) {
+					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
+					resultTokenSuma.setToken(accessTokenSuma.getToken());
+					resultTokenSuma.setUrl("/portal/listener.html#/listener");
+					
+					ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+					resultLoginSuma.setSuccess(true);
+					resultLoginSuma.setResult(resultTokenSuma);
+					
+					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+				}
+				
+				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
+				
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			} else {
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			}
+		}
+		case "YAC01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaYacService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
+			
+			if(accessTokenSuma != null) {
+				
+				// verificamos la validez del token
+				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
+				
+				if (revisaToken.getBody().isSuccess() == true) {
+					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
+					resultTokenSuma.setToken(accessTokenSuma.getToken());
+					resultTokenSuma.setUrl("/portal/listener.html#/listener");
+					
+					ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+					resultLoginSuma.setSuccess(true);
+					resultLoginSuma.setResult(resultTokenSuma);
+					
+					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+				}
+				
+				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
+				
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			} else {
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			}
+		}
+		case "VIL01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaVilService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
+			
+			if(accessTokenSuma != null) {
+				
+				// verificamos la validez del token
+				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
+				
+				if (revisaToken.getBody().isSuccess() == true) {
+					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
+					resultTokenSuma.setToken(accessTokenSuma.getToken());
+					resultTokenSuma.setUrl("/portal/listener.html#/listener");
+					
+					ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+					resultLoginSuma.setSuccess(true);
+					resultLoginSuma.setResult(resultTokenSuma);
+					
+					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+				}
+				
+				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
+				
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			} else {
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			}
+		}
+		case "AVA01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaAvaService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
+			
+			if(accessTokenSuma != null) {
+				
+				// verificamos la validez del token
+				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
+				
+				if (revisaToken.getBody().isSuccess() == true) {
+					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
+					resultTokenSuma.setToken(accessTokenSuma.getToken());
+					resultTokenSuma.setUrl("/portal/listener.html#/listener");
+					
+					ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+					resultLoginSuma.setSuccess(true);
+					resultLoginSuma.setResult(resultTokenSuma);
+					
+					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+				}
+				
+				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
+				
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			} else {
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			}
+		}
+		case "BER01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaBerService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
+			
+			if(accessTokenSuma != null) {
+				
+				// verificamos la validez del token
+				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
+				
+				if (revisaToken.getBody().isSuccess() == true) {
+					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
+					resultTokenSuma.setToken(accessTokenSuma.getToken());
+					resultTokenSuma.setUrl("/portal/listener.html#/listener");
+					
+					ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
+					resultLoginSuma.setSuccess(true);
+					resultLoginSuma.setResult(resultTokenSuma);
+					
+					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+				}
+				
+				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
+				
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			} else {
+				return this.procesoRequestLoginSuma(paramsLoginSuma);
+			}
+		}
+		case "PSG01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaPsgService.buscarPorUsuario(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario());
 			
 			if(accessTokenSuma != null) {
 				
@@ -595,6 +840,258 @@ public class SumaController {
 
 				break;
 			}
+			case "TAM01": {
+				try {
+					// verificamos si el parte suma ya existe
+					ParteSuma psExistente = this.parteSumaTamService.buscarPorPrmSuma(parteSumaSoa.getCor());
+					
+					if(psExistente == null) {
+						
+						if (this.parteSumaTamService.saveOrUpdate(parteSumaSoa) == null) {
+							listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
+							LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+						} else {
+							partesSumaGuardados.add(parteSumaSoa);
+						}
+						
+					} else {
+						// verificamos los estados y los modificamos según el caso
+						if(!psExistente.getEstAct().equals("CONCLUIDO") && !psExistente.getEstAct().equals(parteSumaSoa.getEstAct())) {
+							
+							psExistente.setEstAct(parteSumaSoa.getEstAct());
+							
+							if (this.parteSumaTamService.saveOrUpdate(psExistente) == null) {
+								listaError.add(new ErrorParte(psExistente.getCor(), "Error modificando ParteSuma"));
+								LOGGER.error("Error modificando ParteSuma: " + psExistente.getCor());
+							} else {
+								partesSumaGuardados.add(psExistente);
+							}
+						}
+					}
+							
+				} catch (RollbackException e) {
+					listaError.add(new ErrorParte(parteSumaSoa.getCor(), "ParteSuma ya registrado"));
+					LOGGER.info("ParteSuma ya registrado: " + parteSumaSoa.getCor());
+				}
+
+				break;
+			}
+			case "SCR01": {
+				try {
+					// verificamos si el parte suma ya existe
+					ParteSuma psExistente = this.parteSumaScrService.buscarPorPrmSuma(parteSumaSoa.getCor());
+					
+					if(psExistente == null) {
+						
+						if (this.parteSumaScrService.saveOrUpdate(parteSumaSoa) == null) {
+							listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
+							LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+						} else {
+							partesSumaGuardados.add(parteSumaSoa);
+						}
+						
+					} else {
+						// verificamos los estados y los modificamos según el caso
+						if(!psExistente.getEstAct().equals("CONCLUIDO") && !psExistente.getEstAct().equals(parteSumaSoa.getEstAct())) {
+							
+							psExistente.setEstAct(parteSumaSoa.getEstAct());
+							
+							if (this.parteSumaScrService.saveOrUpdate(psExistente) == null) {
+								listaError.add(new ErrorParte(psExistente.getCor(), "Error modificando ParteSuma"));
+								LOGGER.error("Error modificando ParteSuma: " + psExistente.getCor());
+							} else {
+								partesSumaGuardados.add(psExistente);
+							}
+						}
+					}
+							
+				} catch (RollbackException e) {
+					listaError.add(new ErrorParte(parteSumaSoa.getCor(), "ParteSuma ya registrado"));
+					LOGGER.info("ParteSuma ya registrado: " + parteSumaSoa.getCor());
+				}
+
+				break;
+			}
+			case "YAC01": {
+				try {
+					// verificamos si el parte suma ya existe
+					ParteSuma psExistente = this.parteSumaYacService.buscarPorPrmSuma(parteSumaSoa.getCor());
+					
+					if(psExistente == null) {
+						
+						if (this.parteSumaYacService.saveOrUpdate(parteSumaSoa) == null) {
+							listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
+							LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+						} else {
+							partesSumaGuardados.add(parteSumaSoa);
+						}
+						
+					} else {
+						// verificamos los estados y los modificamos según el caso
+						if(!psExistente.getEstAct().equals("CONCLUIDO") && !psExistente.getEstAct().equals(parteSumaSoa.getEstAct())) {
+							
+							psExistente.setEstAct(parteSumaSoa.getEstAct());
+							
+							if (this.parteSumaYacService.saveOrUpdate(psExistente) == null) {
+								listaError.add(new ErrorParte(psExistente.getCor(), "Error modificando ParteSuma"));
+								LOGGER.error("Error modificando ParteSuma: " + psExistente.getCor());
+							} else {
+								partesSumaGuardados.add(psExistente);
+							}
+						}
+					}
+							
+				} catch (RollbackException e) {
+					listaError.add(new ErrorParte(parteSumaSoa.getCor(), "ParteSuma ya registrado"));
+					LOGGER.info("ParteSuma ya registrado: " + parteSumaSoa.getCor());
+				}
+
+				break;
+			}
+			case "VIL01": {
+				try {
+					// verificamos si el parte suma ya existe
+					ParteSuma psExistente = this.parteSumaVilService.buscarPorPrmSuma(parteSumaSoa.getCor());
+					
+					if(psExistente == null) {
+						
+						if (this.parteSumaVilService.saveOrUpdate(parteSumaSoa) == null) {
+							listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
+							LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+						} else {
+							partesSumaGuardados.add(parteSumaSoa);
+						}
+						
+					} else {
+						// verificamos los estados y los modificamos según el caso
+						if(!psExistente.getEstAct().equals("CONCLUIDO") && !psExistente.getEstAct().equals(parteSumaSoa.getEstAct())) {
+							
+							psExistente.setEstAct(parteSumaSoa.getEstAct());
+							
+							if (this.parteSumaVilService.saveOrUpdate(psExistente) == null) {
+								listaError.add(new ErrorParte(psExistente.getCor(), "Error modificando ParteSuma"));
+								LOGGER.error("Error modificando ParteSuma: " + psExistente.getCor());
+							} else {
+								partesSumaGuardados.add(psExistente);
+							}
+						}
+					}
+							
+				} catch (RollbackException e) {
+					listaError.add(new ErrorParte(parteSumaSoa.getCor(), "ParteSuma ya registrado"));
+					LOGGER.info("ParteSuma ya registrado: " + parteSumaSoa.getCor());
+				}
+
+				break;
+			}
+			case "AVA01": {
+				try {
+					// verificamos si el parte suma ya existe
+					ParteSuma psExistente = this.parteSumaAvaService.buscarPorPrmSuma(parteSumaSoa.getCor());
+					
+					if(psExistente == null) {
+						
+						if (this.parteSumaAvaService.saveOrUpdate(parteSumaSoa) == null) {
+							listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
+							LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+						} else {
+							partesSumaGuardados.add(parteSumaSoa);
+						}
+						
+					} else {
+						// verificamos los estados y los modificamos según el caso
+						if(!psExistente.getEstAct().equals("CONCLUIDO") && !psExistente.getEstAct().equals(parteSumaSoa.getEstAct())) {
+							
+							psExistente.setEstAct(parteSumaSoa.getEstAct());
+							
+							if (this.parteSumaAvaService.saveOrUpdate(psExistente) == null) {
+								listaError.add(new ErrorParte(psExistente.getCor(), "Error modificando ParteSuma"));
+								LOGGER.error("Error modificando ParteSuma: " + psExistente.getCor());
+							} else {
+								partesSumaGuardados.add(psExistente);
+							}
+						}
+					}
+							
+				} catch (RollbackException e) {
+					listaError.add(new ErrorParte(parteSumaSoa.getCor(), "ParteSuma ya registrado"));
+					LOGGER.info("ParteSuma ya registrado: " + parteSumaSoa.getCor());
+				}
+
+				break;
+			}
+			case "BER01": {
+				try {
+					// verificamos si el parte suma ya existe
+					ParteSuma psExistente = this.parteSumaBerService.buscarPorPrmSuma(parteSumaSoa.getCor());
+					
+					if(psExistente == null) {
+						
+						if (this.parteSumaBerService.saveOrUpdate(parteSumaSoa) == null) {
+							listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
+							LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+						} else {
+							partesSumaGuardados.add(parteSumaSoa);
+						}
+						
+					} else {
+						// verificamos los estados y los modificamos según el caso
+						if(!psExistente.getEstAct().equals("CONCLUIDO") && !psExistente.getEstAct().equals(parteSumaSoa.getEstAct())) {
+							
+							psExistente.setEstAct(parteSumaSoa.getEstAct());
+							
+							if (this.parteSumaBerService.saveOrUpdate(psExistente) == null) {
+								listaError.add(new ErrorParte(psExistente.getCor(), "Error modificando ParteSuma"));
+								LOGGER.error("Error modificando ParteSuma: " + psExistente.getCor());
+							} else {
+								partesSumaGuardados.add(psExistente);
+							}
+						}
+					}
+							
+				} catch (RollbackException e) {
+					listaError.add(new ErrorParte(parteSumaSoa.getCor(), "ParteSuma ya registrado"));
+					LOGGER.info("ParteSuma ya registrado: " + parteSumaSoa.getCor());
+				}
+
+				break;
+			}
+			case "PSG01": {
+				try {
+					// verificamos si el parte suma ya existe
+					ParteSuma psExistente = this.parteSumaPsgService.buscarPorPrmSuma(parteSumaSoa.getCor());
+					
+					if(psExistente == null) {
+						
+						if (this.parteSumaPsgService.saveOrUpdate(parteSumaSoa) == null) {
+							listaError.add(new ErrorParte(parteSumaSoa.getCor(), "Error registrando ParteSuma"));
+							LOGGER.error("Error registrando ParteSuma: " + parteSumaSoa.getCor());
+						} else {
+							partesSumaGuardados.add(parteSumaSoa);
+						}
+						
+					} else {
+						// verificamos los estados y los modificamos según el caso
+						if(!psExistente.getEstAct().equals("CONCLUIDO") && !psExistente.getEstAct().equals(parteSumaSoa.getEstAct())) {
+							
+							psExistente.setEstAct(parteSumaSoa.getEstAct());
+							
+							if (this.parteSumaPsgService.saveOrUpdate(psExistente) == null) {
+								listaError.add(new ErrorParte(psExistente.getCor(), "Error modificando ParteSuma"));
+								LOGGER.error("Error modificando ParteSuma: " + psExistente.getCor());
+							} else {
+								partesSumaGuardados.add(psExistente);
+							}
+						}
+					}
+							
+				} catch (RollbackException e) {
+					listaError.add(new ErrorParte(parteSumaSoa.getCor(), "ParteSuma ya registrado"));
+					LOGGER.info("ParteSuma ya registrado: " + parteSumaSoa.getCor());
+				}
+
+				break;
+			}
 			default:
 				LOGGER.error("Error. Cód. de recinto no válido");
 			}
@@ -702,6 +1199,62 @@ public class SumaController {
 			flagEliminado = this.accessTokenSumaVirService.deleteById(accessTokenSuma.getId());
 			break;
 		}
+		case "TAM01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaTamService.buscarPorUsuario(usuario);
+			
+			if(accessTokenSuma == null) return false;
+			
+			flagEliminado = this.accessTokenSumaTamService.deleteById(accessTokenSuma.getId());
+			break;
+		}
+		case "SCR01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaScrService.buscarPorUsuario(usuario);
+			
+			if(accessTokenSuma == null) return false;
+			
+			flagEliminado = this.accessTokenSumaScrService.deleteById(accessTokenSuma.getId());
+			break;
+		}
+		case "YAC01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaYacService.buscarPorUsuario(usuario);
+			
+			if(accessTokenSuma == null) return false;
+			
+			flagEliminado = this.accessTokenSumaYacService.deleteById(accessTokenSuma.getId());
+			break;
+		}
+		case "VIL01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaVilService.buscarPorUsuario(usuario);
+			
+			if(accessTokenSuma == null) return false;
+			
+			flagEliminado = this.accessTokenSumaVilService.deleteById(accessTokenSuma.getId());
+			break;
+		}
+		case "AVA01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaAvaService.buscarPorUsuario(usuario);
+			
+			if(accessTokenSuma == null) return false;
+			
+			flagEliminado = this.accessTokenSumaAvaService.deleteById(accessTokenSuma.getId());
+			break;
+		}
+		case "BER01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaBerService.buscarPorUsuario(usuario);
+			
+			if(accessTokenSuma == null) return false;
+			
+			flagEliminado = this.accessTokenSumaBerService.deleteById(accessTokenSuma.getId());
+			break;
+		}
+		case "PSG01": {
+			AccessTokenSuma accessTokenSuma = this.accessTokenSumaPsgService.buscarPorUsuario(usuario);
+			
+			if(accessTokenSuma == null) return false;
+			
+			flagEliminado = this.accessTokenSumaPsgService.deleteById(accessTokenSuma.getId());
+			break;
+		}
 		default:
 			LOGGER.error("Error. Cód. de recinto no válido");
 			return false;
@@ -744,6 +1297,27 @@ public class SumaController {
 		}
 		case "VIR01": {
 			return this.accessTokenSumaVirService.saveOrUpdate(accessTokenSumaGuardar);
+		}
+		case "TAM01": {
+			return this.accessTokenSumaTamService.saveOrUpdate(accessTokenSumaGuardar);
+		}
+		case "SCR01": {
+			return this.accessTokenSumaScrService.saveOrUpdate(accessTokenSumaGuardar);
+		}
+		case "YAC01": {
+			return this.accessTokenSumaYacService.saveOrUpdate(accessTokenSumaGuardar);
+		}
+		case "VIL01": {
+			return this.accessTokenSumaVilService.saveOrUpdate(accessTokenSumaGuardar);
+		}
+		case "AVA01": {
+			return this.accessTokenSumaAvaService.saveOrUpdate(accessTokenSumaGuardar);
+		}
+		case "BER01": {
+			return this.accessTokenSumaBerService.saveOrUpdate(accessTokenSumaGuardar);
+		}
+		case "PSG01": {
+			return this.accessTokenSumaPsgService.saveOrUpdate(accessTokenSumaGuardar);
 		}
 		default:
 			LOGGER.error("Error. Cód. de recinto no válido");

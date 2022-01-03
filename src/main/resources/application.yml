@@ -36,6 +36,48 @@ spring:
       username: SOA
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
+    soa-tam:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@192.168.205.5:1521:XE
+      username: SOA
+      password: ${PASSWORD_SOA}
+      hibernate-hbm2ddl-auto: none
+    soa-scr:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@192.168.208.5:1521:XE
+      username: SOA
+      password: ${PASSWORD_SOA}
+      hibernate-hbm2ddl-auto: none
+    soa-yac:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@192.168.225.5:1521:XE
+      username: SOA
+      password: ${PASSWORD_SOA}
+      hibernate-hbm2ddl-auto: none
+    soa-vil:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@192.168.227.5:1521:XE
+      username: SOA
+      password: ${PASSWORD_SOA}
+      hibernate-hbm2ddl-auto: none
+    soa-ava:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@192.168.210.5:1521:XE
+      username: SOA
+      password: ${PASSWORD_SOA}
+      hibernate-hbm2ddl-auto: none
+    soa-ber:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@192.168.209.5:1521:XE
+      username: SOA
+      password: ${PASSWORD_SOA}
+      hibernate-hbm2ddl-auto: none
+    soa-psg:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@192.168.207.5:1521:XE
+      username: SOA
+      password: ${PASSWORD_SOA}
+      hibernate-hbm2ddl-auto: none
 security:
   oauth2:
     resource:
