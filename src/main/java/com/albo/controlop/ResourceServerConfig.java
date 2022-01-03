@@ -32,9 +32,9 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
                 .requestMatchers()
                 .and()
                 .authorizeRequests()
-                .antMatchers("/v2/api-docs/**" ).authenticated();
-                // .antMatchers("/consultaPesaje/**" ).authenticated();
-                // .antMatchers("/usuarios/**" ).authenticated();
+                .antMatchers("/v2/api-docs/**" ).authenticated()
+                .antMatchers("/controlOperativo/**" ).authenticated()
+                .antMatchers("/suma/**" ).authenticated();
                 
     }    
 
