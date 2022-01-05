@@ -51,5 +51,5 @@ public class AccessTokenSuma implements Serializable {
 	public void setToken(String token) {
 		this.token = token;
 	}
-
+	
 }

@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.persistence.RollbackException;
 
@@ -33,6 +34,8 @@ import com.albo.controlop.dto.RespVerificaTokenSuma;
 import com.albo.controlop.dto.ResultLoginSuma;
 import com.albo.controlop.dto.ResultTokenSuma;
 import com.albo.controlop.dto.ResultadoRegistroPartesSuma;
+import com.albo.controlop.model.Recinto;
+import com.albo.controlop.service.IRecintoService;
 import com.albo.soa.model.AccessTokenSuma;
 import com.albo.soa.model.ParteSuma;
 import com.albo.soa.service.alt.IAccessTokenSumaAltService;
@@ -138,14 +141,30 @@ public class SumaController {
 	@Autowired
 	private IAccessTokenSumaPsgService accessTokenSumaPsgService;
 	
+	@Autowired
+	private IRecintoService recintoService;
 	
-
+	
+	/**
+	 * Realiza el login en el sistema de suma
+	 * @param paramsLoginSuma
+	 * @return Un objeto de tipo ResultLoginSuma si todo es correcto
+	 */
 	@PostMapping(value = "/loginSuma", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<ResultLoginSuma> loginSuma(@RequestBody ParamsLoginSuma paramsLoginSuma) {
+	public ResponseEntity<Object> loginSuma(@RequestBody ParamsLoginSuma paramsLoginSuma) {
 
 		ResultLoginSuma resultLoginError = new ResultLoginSuma();
 		resultLoginError.setSuccess(false);
 		resultLoginError.setResult(null);
+		
+		Optional<Recinto> recintoControlOp = this.recintoService.findById(paramsLoginSuma.getCodRecinto());
+		
+		if( recintoControlOp.isEmpty() ) {
+			LOGGER.error("Error. Cód. de recinto no válido");
+			return new ResponseEntity<Object>("Error. Cód. de recinto no válido", HttpStatus.BAD_REQUEST);
+		}
+		
+		String codAduanaUsuarioAlbo = recintoControlOp.get().getAduana().getAduCod().toString();
 		
 		// buscamos en bd AccessTokenSuma si existe un token registrado para el usuario
 		// y si el token es válido aún		
@@ -159,6 +178,15 @@ public class SumaController {
 				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
 				if (revisaToken.getBody().isSuccess() == true) {
+					
+					String codAduanaUsuarioSuma = revisaToken.getBody().getResult().getUsuario().getAduana().getCodigo();
+					
+					// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+					if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+						LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+						return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+					}
+						
 					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
 					resultTokenSuma.setToken(accessTokenSuma.getToken());
 					resultTokenSuma.setUrl("/portal/listener.html#/listener");
@@ -167,14 +195,50 @@ public class SumaController {
 					resultLoginSuma.setSuccess(true);
 					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+					return new ResponseEntity<>(resultLoginSuma, HttpStatus.OK);
 				}
 				
 				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma_2 = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma_2.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			} else {
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			}
 		}
 		case "CHB01": {
@@ -186,6 +250,15 @@ public class SumaController {
 				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
 				if (revisaToken.getBody().isSuccess() == true) {
+					
+					String codAduanaUsuarioSuma = revisaToken.getBody().getResult().getUsuario().getAduana().getCodigo();
+					
+					// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+					if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+						LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+						return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+					}
+					
 					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
 					resultTokenSuma.setToken(accessTokenSuma.getToken());
 					resultTokenSuma.setUrl("/portal/listener.html#/listener");
@@ -194,14 +267,50 @@ public class SumaController {
 					resultLoginSuma.setSuccess(true);
 					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+					return new ResponseEntity<>(resultLoginSuma, HttpStatus.OK);
 				}
 				
 				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma_2 = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma_2.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			} else {
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			}
 		}
 		case "SCZ01": {
@@ -213,6 +322,15 @@ public class SumaController {
 				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
 				if (revisaToken.getBody().isSuccess() == true) {
+					
+					String codAduanaUsuarioSuma = revisaToken.getBody().getResult().getUsuario().getAduana().getCodigo();
+					
+					// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+					if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+						LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+						return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+					}
+					
 					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
 					resultTokenSuma.setToken(accessTokenSuma.getToken());
 					resultTokenSuma.setUrl("/portal/listener.html#/listener");
@@ -221,14 +339,50 @@ public class SumaController {
 					resultLoginSuma.setSuccess(true);
 					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+					return new ResponseEntity<>(resultLoginSuma, HttpStatus.OK);
 				}
 				
 				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma_2 = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma_2.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			} else {
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			}
 		}
 		case "VIR01": {
@@ -240,6 +394,15 @@ public class SumaController {
 				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
 				if (revisaToken.getBody().isSuccess() == true) {
+					
+					String codAduanaUsuarioSuma = revisaToken.getBody().getResult().getUsuario().getAduana().getCodigo();
+					
+					// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+					if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+						LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+						return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+					}
+					
 					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
 					resultTokenSuma.setToken(accessTokenSuma.getToken());
 					resultTokenSuma.setUrl("/portal/listener.html#/listener");
@@ -248,14 +411,50 @@ public class SumaController {
 					resultLoginSuma.setSuccess(true);
 					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+					return new ResponseEntity<>(resultLoginSuma, HttpStatus.OK);
 				}
 				
 				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma_2 = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma_2.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			} else {
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			}
 		}
 		case "TAM01": {
@@ -267,6 +466,15 @@ public class SumaController {
 				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
 				if (revisaToken.getBody().isSuccess() == true) {
+					
+					String codAduanaUsuarioSuma = revisaToken.getBody().getResult().getUsuario().getAduana().getCodigo();
+					
+					// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+					if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+						LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+						return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+					}
+					
 					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
 					resultTokenSuma.setToken(accessTokenSuma.getToken());
 					resultTokenSuma.setUrl("/portal/listener.html#/listener");
@@ -275,14 +483,50 @@ public class SumaController {
 					resultLoginSuma.setSuccess(true);
 					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+					return new ResponseEntity<>(resultLoginSuma, HttpStatus.OK);
 				}
 				
 				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma_2 = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma_2.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			} else {
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			}
 		}
 		case "SCR01": {
@@ -294,6 +538,15 @@ public class SumaController {
 				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
 				if (revisaToken.getBody().isSuccess() == true) {
+					
+					String codAduanaUsuarioSuma = revisaToken.getBody().getResult().getUsuario().getAduana().getCodigo();
+					
+					// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+					if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+						LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+						return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+					}
+					
 					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
 					resultTokenSuma.setToken(accessTokenSuma.getToken());
 					resultTokenSuma.setUrl("/portal/listener.html#/listener");
@@ -302,14 +555,50 @@ public class SumaController {
 					resultLoginSuma.setSuccess(true);
 					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+					return new ResponseEntity<>(resultLoginSuma, HttpStatus.OK);
 				}
 				
 				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma_2 = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma_2.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			} else {
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			}
 		}
 		case "YAC01": {
@@ -321,6 +610,15 @@ public class SumaController {
 				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
 				if (revisaToken.getBody().isSuccess() == true) {
+					
+					String codAduanaUsuarioSuma = revisaToken.getBody().getResult().getUsuario().getAduana().getCodigo();
+					
+					// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+					if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+						LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+						return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+					}
+					
 					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
 					resultTokenSuma.setToken(accessTokenSuma.getToken());
 					resultTokenSuma.setUrl("/portal/listener.html#/listener");
@@ -329,14 +627,50 @@ public class SumaController {
 					resultLoginSuma.setSuccess(true);
 					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+					return new ResponseEntity<>(resultLoginSuma, HttpStatus.OK);
 				}
 				
 				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma_2 = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma_2.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			} else {
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			}
 		}
 		case "VIL01": {
@@ -348,6 +682,15 @@ public class SumaController {
 				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
 				if (revisaToken.getBody().isSuccess() == true) {
+					
+					String codAduanaUsuarioSuma = revisaToken.getBody().getResult().getUsuario().getAduana().getCodigo();
+					
+					// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+					if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+						LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+						return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+					}
+					
 					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
 					resultTokenSuma.setToken(accessTokenSuma.getToken());
 					resultTokenSuma.setUrl("/portal/listener.html#/listener");
@@ -356,14 +699,50 @@ public class SumaController {
 					resultLoginSuma.setSuccess(true);
 					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+					return new ResponseEntity<>(resultLoginSuma, HttpStatus.OK);
 				}
 				
 				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma_2 = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma_2.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			} else {
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			}
 		}
 		case "AVA01": {
@@ -375,6 +754,15 @@ public class SumaController {
 				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
 				if (revisaToken.getBody().isSuccess() == true) {
+					
+					String codAduanaUsuarioSuma = revisaToken.getBody().getResult().getUsuario().getAduana().getCodigo();
+					
+					// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+					if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+						LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+						return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+					}
+					
 					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
 					resultTokenSuma.setToken(accessTokenSuma.getToken());
 					resultTokenSuma.setUrl("/portal/listener.html#/listener");
@@ -383,14 +771,50 @@ public class SumaController {
 					resultLoginSuma.setSuccess(true);
 					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+					return new ResponseEntity<>(resultLoginSuma, HttpStatus.OK);
 				}
 				
 				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma_2 = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma_2.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			} else {
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			}
 		}
 		case "BER01": {
@@ -402,6 +826,15 @@ public class SumaController {
 				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
 				if (revisaToken.getBody().isSuccess() == true) {
+					
+					String codAduanaUsuarioSuma = revisaToken.getBody().getResult().getUsuario().getAduana().getCodigo();
+					
+					// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+					if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+						LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+						return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+					}
+					
 					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
 					resultTokenSuma.setToken(accessTokenSuma.getToken());
 					resultTokenSuma.setUrl("/portal/listener.html#/listener");
@@ -410,14 +843,50 @@ public class SumaController {
 					resultLoginSuma.setSuccess(true);
 					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+					return new ResponseEntity<>(resultLoginSuma, HttpStatus.OK);
 				}
 				
 				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma_2 = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma_2.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			} else {
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			}
 		}
 		case "PSG01": {
@@ -429,6 +898,15 @@ public class SumaController {
 				ResponseEntity<RespVerificaTokenSuma> revisaToken = this.verificaTokenSuma(accessTokenSuma.getToken());
 				
 				if (revisaToken.getBody().isSuccess() == true) {
+					
+					String codAduanaUsuarioSuma = revisaToken.getBody().getResult().getUsuario().getAduana().getCodigo();
+					
+					// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+					if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+						LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+						return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+					}
+					
 					ResultTokenSuma resultTokenSuma = new ResultTokenSuma();
 					resultTokenSuma.setToken(accessTokenSuma.getToken());
 					resultTokenSuma.setUrl("/portal/listener.html#/listener");
@@ -437,53 +915,90 @@ public class SumaController {
 					resultLoginSuma.setSuccess(true);
 					resultLoginSuma.setResult(resultTokenSuma);
 					
-					return new ResponseEntity<ResultLoginSuma>(resultLoginSuma, HttpStatus.OK);
+					return new ResponseEntity<>(resultLoginSuma, HttpStatus.OK);
 				}
 				
 				this.eliminaTokenUsuarioSuma(paramsLoginSuma.getBodyLoginSuma().getNombreUsuario(), paramsLoginSuma.getCodRecinto());
 				
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma_2 = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma_2.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			} else {
-				return this.procesoRequestLoginSuma(paramsLoginSuma);
+				ResponseEntity<Object> respProcesoLoginSuma = this.procesoRequestLoginSuma(paramsLoginSuma);
+				
+				if(!respProcesoLoginSuma.getStatusCode().equals(HttpStatus.OK)) {
+					LOGGER.error("Error. Ocurrió un error en el proceso de Login con SUMA");
+					return new ResponseEntity<>("Error. Ocurrió un error en el proceso de Login con SUMA", respProcesoLoginSuma.getStatusCode());
+				}
+				
+				// verificamos la validez del token
+				ResultLoginSuma resProcesoLoginSuma = (ResultLoginSuma) respProcesoLoginSuma.getBody();
+				ResponseEntity<RespVerificaTokenSuma> revisaToken_2 = this.verificaTokenSuma(resProcesoLoginSuma.getResult().getToken());
+				String codAduanaUsuarioSuma = revisaToken_2.getBody().getResult().getUsuario().getAduana().getCodigo();
+				
+				// verificamos si el codRecinto corresponde con el recinto al que pertenece el usuario suma
+				if(!codAduanaUsuarioSuma.equals(codAduanaUsuarioAlbo)) {
+					LOGGER.error("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO");
+					return new ResponseEntity<>("Error. Cód. Aduana usuario SUMA difiere de cód. Aduana usuario ALBO", HttpStatus.BAD_REQUEST);
+				}		
+				
+				return respProcesoLoginSuma;
 			}
 		}
 		default:
 			LOGGER.error("Error. Cód. de recinto no válido");
-			return new ResponseEntity<ResultLoginSuma>(resultLoginError, HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<>(resultLoginError, HttpStatus.BAD_REQUEST);
 		}
 	}
 	
 
+	/**
+	 * Descarga los partes del sistema suma y los registra en la bd soa del recinto requerido
+	 * @param bodyRegistroPartesSuma
+	 * @return Un objeto del tipo ResultadoRegistroPartesSuma si todo sale correcto
+	 */
 	@PostMapping(value = "/registroPartesSuma", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<?> cargaPartesSuma(@RequestBody BodyRegistroPartesSuma bodyRegistroPartesSuma) {
+	public ResponseEntity<Object> cargaPartesSuma(@RequestBody BodyRegistroPartesSuma bodyRegistroPartesSuma) {
 		
 		// armamos la fecha inicial
 		LocalDateTime fechaInicialProceso = bodyRegistroPartesSuma.getParamsMisPartesSuma().getFrom().withHour(0).withMinute(0).withSecond(0).withNano(0);
 		LOGGER.info("fechaInicialProceso: " + fechaInicialProceso);
 		
 		// armamos la fecha final
-//		LocalDateTime fechaFinalProceso = bodyRegistroPartesSuma.getParamsMisPartesSuma().getTo().withHour(23).withMinute(59).withSecond(59).withNano(999999999);
 		LocalDateTime fechaFinalProceso = fechaInicialProceso;
 		LOGGER.info("fechaFinalProceso: " + fechaFinalProceso);
 		
 		bodyRegistroPartesSuma.getParamsMisPartesSuma().setFrom(fechaInicialProceso);
 		bodyRegistroPartesSuma.getParamsMisPartesSuma().setTo(fechaFinalProceso);
 		
-		// hacemos el request de registros suma, recorriendo sus páginas de partes según la fecha
-//		Long fechaInicialEpoch = this.localDateTimeToEpochMilliseconds(bodyRegistroPartesSuma.getParamsMisPartesSuma().getFrom());
-//		Long fechaFinalEpoch = this.localDateTimeToEpochMilliseconds(bodyRegistroPartesSuma.getParamsMisPartesSuma().getTo());
-		
+		// hacemos el request de registros suma, recorriendo sus páginas de partes según la fecha		
 		// verificamos la validez del token
 		ParamsLoginSuma paramsLoginSuma = new ParamsLoginSuma();
 		paramsLoginSuma.setCodRecinto(bodyRegistroPartesSuma.getCodRecinto());
 		paramsLoginSuma.setBodyLoginSuma(bodyRegistroPartesSuma.getBodyLoginSuma());
 		
-		ResponseEntity<ResultLoginSuma> responseLoginSuma = this.loginSuma(paramsLoginSuma);
+		ResponseEntity<Object> responseLoginSuma = this.loginSuma(paramsLoginSuma);
 		ResultLoginSuma resultLoginSuma = new ResultLoginSuma();
 		
 		switch (responseLoginSuma.getStatusCode()) {
 		case OK:
-			resultLoginSuma = responseLoginSuma.getBody();
+			resultLoginSuma = (ResultLoginSuma) responseLoginSuma.getBody();
 			bodyRegistroPartesSuma.setToken(resultLoginSuma.getResult().getToken());
 			
 			// realizamos la consulta de la cantidad de partes existentes en suma 
@@ -500,10 +1015,10 @@ public class SumaController {
 				resultadoRegistroPartesSuma.setTotalRegistros(Integer.valueOf(conteoPrSuma.getBody().toString()));
 			}
 			
-			return new ResponseEntity<ResultadoRegistroPartesSuma>(resultadoRegistroPartesSuma, HttpStatus.OK);
+			return new ResponseEntity<>(resultadoRegistroPartesSuma, HttpStatus.OK);
 		default:
-			LOGGER.error("Error login SUMA: " + responseLoginSuma.getStatusCode());
-			return new ResponseEntity<String>("Error login SUMA: " + responseLoginSuma.getStatusCode(), HttpStatus.BAD_REQUEST);
+			LOGGER.error("Error login SUMA: " + responseLoginSuma.getStatusCode() + ' ' + responseLoginSuma.getBody());
+			return new ResponseEntity<>(responseLoginSuma.getBody(), responseLoginSuma.getStatusCode());
 		}
 	}
 	
@@ -1263,7 +1778,7 @@ public class SumaController {
 		return flagEliminado;
 	}
 	
-	private ResponseEntity<ResultLoginSuma> procesoRequestLoginSuma(ParamsLoginSuma paramsLoginSuma) {
+	private ResponseEntity<Object> procesoRequestLoginSuma(ParamsLoginSuma paramsLoginSuma) {
 		
 		ResponseEntity<ResultLoginSuma> response = this.requestLoginSuma(paramsLoginSuma);
 
@@ -1276,10 +1791,10 @@ public class SumaController {
 			// guardamos el token suma
 			this.guardadoTokenSuma(accessTokenSumaGuardar, paramsLoginSuma.getCodRecinto());
 			
-			return new ResponseEntity<ResultLoginSuma>(response.getBody(), HttpStatus.OK);
+			return new ResponseEntity<>(response.getBody(), HttpStatus.OK);
 		default:
-			LOGGER.error("Error login SUMA: " + response.getStatusCode());
-			return new ResponseEntity<ResultLoginSuma>(response.getBody(), HttpStatus.BAD_REQUEST);
+			LOGGER.error("Error login SUMA: " + response.getStatusCode() + ' ' + response.getBody());
+			return new ResponseEntity<>(response.getBody(), response.getStatusCode());
 		}
 	}
 	
