@@ -51,6 +51,10 @@ public class Recinto implements Serializable {
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "recinto")
 	private List<ParteSumaExcel> partesSuma = new ArrayList<ParteSumaExcel>();
 
+	@JsonIgnore
+	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "recinto")
+	private List<Tarea> tareas = new ArrayList<>();
+
 	/** fin campos bd **/
 
 	/** inicio getters y setters **/
@@ -117,6 +121,14 @@ public class Recinto implements Serializable {
 
 	public void setPartesSuma(List<ParteSumaExcel> partesSuma) {
 		this.partesSuma = partesSuma;
+	}
+
+	public List<Tarea> getTareas() {
+		return tareas;
+	}
+
+	public void setTareas(List<Tarea> tareas) {
+		this.tareas = tareas;
 	}
 
 	/** fin getters y setters **/
