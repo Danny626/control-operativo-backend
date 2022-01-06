@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.albo.controlop.impl.ProcesoService;
 import com.albo.controlop.impl.ScheduleTaskService;
 import com.albo.controlop.model.Tarea;
 import com.albo.controlop.service.ITareaService;
@@ -37,6 +38,9 @@ public class TareaController {
 	@Autowired
 	private ScheduleTaskService scheduleTaskService;
 	
+	@Autowired
+	private ProcesoService procesoService;
+	
 	
 	@GetMapping(value = "/obtenerTareas", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<List<Tarea>> listarTareas() {
@@ -52,13 +56,23 @@ public class TareaController {
 		Tarea tareaCreada = this.tareaService.saveOrUpdate(tarea);
 		
 		if(tareaCreada != null) {
-			this.scheduleTaskService.addTaskToScheduler(
-					tareaCreada.getId(), 
-					() -> System.out.println("my task is running -> 1"), 
-					tarea.getCron()
+			switch(tarea.getTipo()) {
+				case "CARGA_PARTES_SUMA": {
+					
+					this.scheduleTaskService.addTaskToScheduler(
+							tareaCreada.getId(), 
+							() -> this.procesoService.procesoCargaParteSuma(tarea), 
+							tarea.getCron()
 					);
+					
+					LOGGER.info("Tarea creada");					
+					break;
+				}
+				default: {
+					return new ResponseEntity<>("Tipo de tarea inexistente", HttpStatus.BAD_REQUEST);
+				}
+			}
 			
-			LOGGER.info("Tarea creada");
 		} else {
 			return new ResponseEntity<>("Error al crear tarea", HttpStatus.BAD_REQUEST);
 		}
@@ -74,11 +88,23 @@ public class TareaController {
 		if(tareaModificada != null) {
 			// eliminamos la tarea y la volvemos a crear en el schedule
 			this.scheduleTaskService.removeTaskFromScheduler(tarea.getId());
-			this.scheduleTaskService.addTaskToScheduler(
-					tarea.getId(), 
-					() -> System.out.println("my task is running -> 1"), 
-					tarea.getCron()
-					);			
+			
+			switch(tarea.getTipo()) {
+				case "CARGA_PARTES_SUMA": {
+					
+					this.scheduleTaskService.addTaskToScheduler(
+							tareaModificada.getId(), 
+							() -> this.procesoService.procesoCargaParteSuma(tarea), 
+							tarea.getCron()
+					);
+					
+					LOGGER.info("Tarea creada");					
+					break;
+				}
+				default: {
+					return new ResponseEntity<>("Tipo de tarea inexistente", HttpStatus.BAD_REQUEST);
+				}
+			}		
 		} else {
 			return new ResponseEntity<>("Error al modificar en BD ó el registro no existe", HttpStatus.NOT_MODIFIED);
 		}
