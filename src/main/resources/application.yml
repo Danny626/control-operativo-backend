@@ -1,81 +1,84 @@
 server:
-  port: 8080
-  address: localhost
+  port: ${SERVER_PORT}
+  address: ${SERVER_ADDRESS}
   servlet:
     context-path: /controlOperativo-backend
 spring:
+  config:
+    import: optional:file:.env[.properties]
+    
   datasource:
     control-operativo:
       driver-class-name: org.postgresql.Driver
-      jdbc-url: jdbc:postgresql://${DB_HOST_CO}/control-operativo
-      username: controlop
+      jdbc-url: jdbc:postgresql://${DB_HOST_CO}/${DB_SCHEMA_CO}
+      username: ${USERNAME_CO}
       password: ${PASSWORD_CO}
       hibernate-hbm2ddl-auto: update
       show-sql: true
     soa-alt:
       driver-class-name: oracle.jdbc.OracleDriver
-      jdbc-url: jdbc:oracle:thin:@192.168.224.5:1521:XE
-      username: SOA
+      jdbc-url: jdbc:oracle:thin:@${DB_HOST_SOA_ALT}:${DB_PORT_SOA}:${DB_SCHEMA_SOA}
+      username: ${USERNAME_SOA}
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
     soa-chb:
       driver-class-name: oracle.jdbc.OracleDriver
-      jdbc-url: jdbc:oracle:thin:@192.168.226.5:1521:XE
-      username: SOA
+      jdbc-url: jdbc:oracle:thin:@${DB_HOST_SOA_CHB}:${DB_PORT_SOA}:${DB_SCHEMA_SOA}
+      username: ${USERNAME_SOA}
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
     soa-vir:
       driver-class-name: oracle.jdbc.OracleDriver
-      jdbc-url: jdbc:oracle:thin:@192.168.221.5:1521:XE
-      username: SOA
+      jdbc-url: jdbc:oracle:thin:@${DB_HOST_SOA_VIR}:${DB_PORT_SOA}:${DB_SCHEMA_SOA}
+      username: ${USERNAME_SOA}
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
     soa-scz:
       driver-class-name: oracle.jdbc.OracleDriver
-      jdbc-url: jdbc:oracle:thin:@192.168.223.5:1521:XE
-      username: SOA
+      jdbc-url: jdbc:oracle:thin:@${DB_HOST_SOA_SCZ}:${DB_PORT_SOA}:${DB_SCHEMA_SOA}
+      username: ${USERNAME_SOA}
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
     soa-tam:
       driver-class-name: oracle.jdbc.OracleDriver
-      jdbc-url: jdbc:oracle:thin:@192.168.205.5:1521:XE
-      username: SOA
+      jdbc-url: jdbc:oracle:thin:@${DB_HOST_SOA_TAM}:${DB_PORT_SOA}:${DB_SCHEMA_SOA}
+      username: ${USERNAME_SOA}
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
     soa-scr:
       driver-class-name: oracle.jdbc.OracleDriver
-      jdbc-url: jdbc:oracle:thin:@192.168.208.5:1521:XE
-      username: SOA
+      jdbc-url: jdbc:oracle:thin:@${DB_HOST_SOA_SCR}:${DB_PORT_SOA}:${DB_SCHEMA_SOA}
+      username: ${USERNAME_SOA}
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
     soa-yac:
       driver-class-name: oracle.jdbc.OracleDriver
-      jdbc-url: jdbc:oracle:thin:@192.168.225.5:1521:XE
-      username: SOA
+      jdbc-url: jdbc:oracle:thin:@${DB_HOST_SOA_YAC}:${DB_PORT_SOA}:${DB_SCHEMA_SOA}
+      username: ${USERNAME_SOA}
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
     soa-vil:
       driver-class-name: oracle.jdbc.OracleDriver
-      jdbc-url: jdbc:oracle:thin:@192.168.227.5:1521:XE
-      username: SOA
+      jdbc-url: jdbc:oracle:thin:@${DB_HOST_SOA_VIL}:${DB_PORT_SOA}:${DB_SCHEMA_SOA}
+      username: ${USERNAME_SOA}
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
     soa-ava:
       driver-class-name: oracle.jdbc.OracleDriver
-      jdbc-url: jdbc:oracle:thin:@192.168.210.5:1521:XE
-      username: SOA
+      jdbc-url: jdbc:oracle:thin:@${DB_HOST_SOA_AVA}:${DB_PORT_SOA}:${DB_SCHEMA_SOA}
+      username: ${USERNAME_SOA}
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
     soa-ber:
       driver-class-name: oracle.jdbc.OracleDriver
-      jdbc-url: jdbc:oracle:thin:@192.168.209.5:1521:XE
-      username: SOA
+      jdbc-url: jdbc:oracle:thin:@${DB_HOST_SOA_BER}:${DB_PORT_SOA}:${DB_SCHEMA_SOA}
+      username: ${USERNAME_SOA}
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
     soa-psg:
       driver-class-name: oracle.jdbc.OracleDriver
-      jdbc-url: jdbc:oracle:thin:@192.168.207.5:1521:XE
-      username: SOA
+      jdbc-url: jdbc:oracle:thin:@${DB_HOST_SOA_PSG}:${DB_PORT_SOA}:${DB_SCHEMA_SOA}
+      username: ${USERNAME_SOA}
       password: ${PASSWORD_SOA}
       hibernate-hbm2ddl-auto: none
 security:
@@ -83,12 +86,12 @@ security:
     resource:
       filter-order: 3
   signing-key: ${SIGNIN_KEY}
-  encoding-strength: 256
+  encoding-strength: ${ENCODING_STRENGTH}
   security-realm: Spring Boot JWT
   jwt:
-    client-id: controlOperativo
+    client-id: ${CLIENT_ID}
     client-secret: ${CLIENT_SECRET}
-    grant-type: password
+    grant-type: ${GRANT_TYPE}
     scope-read: read
     scope-write: write
     resource-ids: ${RESOURCE_ID}
