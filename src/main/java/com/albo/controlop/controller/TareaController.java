@@ -61,7 +61,7 @@ public class TareaController {
 					
 					this.scheduleTaskService.addTaskToScheduler(
 							tareaCreada.getId(), 
-							() -> this.procesoService.procesoCargaParteSuma(tarea), 
+							() -> this.procesoService.tareaCargaParteSuma(tareaCreada.getId()), 
 							tarea.getCron()
 					);
 					
@@ -94,7 +94,7 @@ public class TareaController {
 					
 					this.scheduleTaskService.addTaskToScheduler(
 							tareaModificada.getId(), 
-							() -> this.procesoService.procesoCargaParteSuma(tarea), 
+							() -> this.procesoService.tareaCargaParteSuma(tareaModificada.getId()), 
 							tarea.getCron()
 					);
 					

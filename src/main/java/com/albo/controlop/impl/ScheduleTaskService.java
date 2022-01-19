@@ -70,7 +70,7 @@ public class ScheduleTaskService {
 					
 					this.scheduleTaskService.addTaskToScheduler(
 							tarea.getId(), 
-							() -> this.procesoService.procesoCargaParteSuma(tarea), 
+							() -> this.procesoService.tareaCargaParteSuma(tarea.getId()), 
 							tarea.getCron()
 					);
 					
