@@ -19,7 +19,7 @@
 	<!-- FIN para generar war para despliegue -->
 	
 	<properties>
-		<java.version>17</java.version>
+		<java.version>16</java.version>
 		<nombre.final>controlOperativo-backend</nombre.final>
 		<local.repository.folder>${pom.basedir}/local-maven-repo/</local.repository.folder>
 		

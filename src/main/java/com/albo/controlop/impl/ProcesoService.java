@@ -64,6 +64,10 @@ public class ProcesoService {
 	}
 	
 	public void tareaCargaParteSuma(Long idTarea) {
+		// armamos fecha proceso
+		LocalDateTime fechaProceso = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+		LOGGER.info("fechaProceso: " + fechaProceso);
+					
 		Optional<Tarea> tareaOptional = this.tareaService.findById(idTarea);
 		BodyRegistroPartesSuma bodyRegistroPartesSuma = new BodyRegistroPartesSuma();
 		
@@ -77,10 +81,6 @@ public class ProcesoService {
 				e.printStackTrace();
 				LOGGER.error("Error. El cuerpo para el registro de partes suma no es correcto");
 			}
-			
-			// armamos fecha proceso
-			LocalDateTime fechaProceso = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
-			LOGGER.info("fechaProceso: " + fechaProceso);
 			
 			bodyRegistroPartesSuma.getParamsMisPartesSuma().setFrom(fechaProceso);
 			bodyRegistroPartesSuma.getParamsMisPartesSuma().setTo(fechaProceso);

@@ -1004,18 +1004,24 @@ public class SumaController {
 			// realizamos la consulta de la cantidad de partes existentes en suma 
 			ResponseEntity<?> conteoPrSuma = this.conteoPartesSuma(bodyRegistroPartesSuma.getUsuario(), bodyRegistroPartesSuma.getToken(),bodyRegistroPartesSuma.getParamsMisPartesSuma().getTipPre(), fechaInicialProceso, fechaFinalProceso, bodyRegistroPartesSuma.getBodyMisPartesSuma().getEstadoParte());
 			
-			// realizamos el pedido de partes suma
-			ResponseEntity<List<ParteSumaProceso>> listaPartesSumaResultado = this.requestPartesSuma(bodyRegistroPartesSuma, Integer.valueOf(conteoPrSuma.getBody().toString()));
+			if(conteoPrSuma.getBody().toString().equals("0")) {
+				LOGGER.info("No existen PR en SUMA para este día" + conteoPrSuma.getStatusCode() + ' ' + conteoPrSuma.getBody());
+				return new ResponseEntity<>("No existen PR en SUMA para este día", conteoPrSuma.getStatusCode());
+			} else {
+				// realizamos el pedido de partes suma
+				ResponseEntity<List<ParteSumaProceso>> listaPartesSumaResultado = this.requestPartesSuma(bodyRegistroPartesSuma, Integer.valueOf(conteoPrSuma.getBody().toString()));
 
-			// guardamos los registros partes suma conseguidos
-			ResultadoRegistroPartesSuma resultadoRegistroPartesSuma = this.registroPrmSumaSoa(listaPartesSumaResultado.getBody(), bodyRegistroPartesSuma.getCodRecinto());
-			
-			// si la consulta del conteo de partes suma es correcto lo establecemoc en totalRegistros
-			if(conteoPrSuma.getStatusCode() == HttpStatus.OK) {
-				resultadoRegistroPartesSuma.setTotalRegistros(Integer.valueOf(conteoPrSuma.getBody().toString()));
+				// guardamos los registros partes suma conseguidos
+				ResultadoRegistroPartesSuma resultadoRegistroPartesSuma = this.registroPrmSumaSoa(listaPartesSumaResultado.getBody(), bodyRegistroPartesSuma.getCodRecinto());
+				
+				// si la consulta del conteo de partes suma es correcto lo establecemoc en totalRegistros
+				if(conteoPrSuma.getStatusCode() == HttpStatus.OK) {
+					resultadoRegistroPartesSuma.setTotalRegistros(Integer.valueOf(conteoPrSuma.getBody().toString()));
+				}
+				
+				return new ResponseEntity<>(resultadoRegistroPartesSuma, HttpStatus.OK);
 			}
-			
-			return new ResponseEntity<>(resultadoRegistroPartesSuma, HttpStatus.OK);
+
 		default:
 			LOGGER.error("Error login SUMA: " + responseLoginSuma.getStatusCode() + ' ' + responseLoginSuma.getBody());
 			return new ResponseEntity<>(responseLoginSuma.getBody(), responseLoginSuma.getStatusCode());
