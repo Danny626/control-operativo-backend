@@ -5,7 +5,7 @@ server:
     context-path: /controlOperativo-backend
 spring:
   config:
-    import: optional:file:/etc/springboot-env/.env[.properties]
+    import: optional:file:/etc/springboot-env/controlOperativo/.env[.properties]
     
   datasource:
     control-operativo:
