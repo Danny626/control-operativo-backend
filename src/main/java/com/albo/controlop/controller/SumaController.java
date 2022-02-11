@@ -1002,7 +1002,7 @@ public class SumaController {
 			bodyRegistroPartesSuma.setToken(resultLoginSuma.getResult().getToken());
 			
 			// realizamos la consulta de la cantidad de partes existentes en suma 
-			ResponseEntity<?> conteoPrSuma = this.conteoPartesSuma(bodyRegistroPartesSuma.getUsuario(), bodyRegistroPartesSuma.getToken(),bodyRegistroPartesSuma.getParamsMisPartesSuma().getTipPre(), fechaInicialProceso, fechaFinalProceso, bodyRegistroPartesSuma.getBodyMisPartesSuma().getEstadoParte());
+			ResponseEntity<?> conteoPrSuma = this.conteoPartesSuma(bodyRegistroPartesSuma.getBodyLoginSuma().getNombreUsuario(), bodyRegistroPartesSuma.getToken(),bodyRegistroPartesSuma.getParamsMisPartesSuma().getTipPre(), fechaInicialProceso, fechaFinalProceso, bodyRegistroPartesSuma.getBodyMisPartesSuma().getEstadoParte());
 			
 			if(conteoPrSuma.getBody().toString().equals("0")) {
 				LOGGER.info("No existen PR en SUMA para este día" + conteoPrSuma.getStatusCode() + ' ' + conteoPrSuma.getBody());
@@ -1214,6 +1214,7 @@ public class SumaController {
 					.setContotsobfalPesrec(prm.getConTotSobFal() == null ? null : prm.getConTotSobFal().getPesRec());
 			parteSumaSoa.setFechaRegistro(LocalDateTime.now());
 			parteSumaSoa.setSync(false);
+			parteSumaSoa.setUsrSuma(prm.getUsr());
 			
 			// realizamos el guardado de acuerdo al recinto
 			switch (recCod) {
@@ -1635,7 +1636,7 @@ public class SumaController {
 				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
 		headers.set("Content-Type", "application/json;charset=UTF-8");
 		headers.set("Accept", "application/json, text/plain, */*");
-		headers.set("User", bodyRegistroPartesSuma.getUsuario());
+		headers.set("User", bodyRegistroPartesSuma.getBodyLoginSuma().getNombreUsuario());
 		headers.set("Auth-Token", bodyRegistroPartesSuma.getToken());
 		headers.set("sec-ch-ua-platform", "\"Windows\"");
 

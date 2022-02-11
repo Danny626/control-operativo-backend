@@ -24,7 +24,7 @@ public class ParteSuma implements Serializable {
 	@Id
 //	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "PARTE_SUMA_SEQ")
-    @SequenceGenerator(name = "PARTE_SUMA_SEQ", sequenceName = "PARTE_SUMA_SEQ", allocationSize = 1)
+	@SequenceGenerator(name = "PARTE_SUMA_SEQ", sequenceName = "PARTE_SUMA_SEQ", allocationSize = 1)
 	@Column(name = "ID", nullable = false, unique = true)
 	private Long id;
 
@@ -37,6 +37,9 @@ public class ParteSuma implements Serializable {
 	@JsonSerialize(using = ToStringSerializer.class)
 	@Column(name = "FEC_TRA")
 	private LocalDateTime fecTra;
+
+	@Column(name = "USR_SUMA")
+	private String usrSuma;
 
 	@Column(name = "DST_OEA")
 	private Boolean dstOea;
@@ -324,6 +327,14 @@ public class ParteSuma implements Serializable {
 
 	public void setSync(boolean sync) {
 		this.sync = sync;
+	}
+
+	public String getUsrSuma() {
+		return usrSuma;
+	}
+
+	public void setUsrSuma(String usrSuma) {
+		this.usrSuma = usrSuma;
 	}
 
 }
